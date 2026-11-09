@@ -1,0 +1,27 @@
+# AirShip Root .gitignore
+
+# Rust / Cargo
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Xcode / Apple / Swift
+.build/
+.swiftpm/
+DerivedData/
+*.xcworkspace
+*.xcuserdatad
+xcuserdata/
+*.orig.*
+
+# Android / Gradle / Kotlin
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+*.hprof
+
+# OS Specific
+.DS_Store
+Thumbs.db

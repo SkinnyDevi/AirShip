@@ -1,0 +1,16 @@
+[package]
+name = "airship-ffi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+airship-primitives = { workspace = true }
+airship-domain = { workspace = true }
+airship-crypto = { workspace = true }
+airship-storage = { workspace = true }
+airship-network = { workspace = true }

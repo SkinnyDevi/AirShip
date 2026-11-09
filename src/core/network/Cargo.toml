@@ -1,0 +1,11 @@
+[package]
+name = "airship-network"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+airship-primitives = { workspace = true }
+airship-domain = { workspace = true }
+airship-crypto = { workspace = true }

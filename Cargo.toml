@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = [
+    "src/core/primitives",
+    "src/core/domain",
+    "src/core/crypto",
+    "src/core/storage",
+    "src/core/network",
+    "src/core/ffi",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["AirShip Team"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+airship-primitives = { path = "src/core/primitives" }
+airship-domain = { path = "src/core/domain" }
+airship-crypto = { path = "src/core/crypto" }
+airship-storage = { path = "src/core/storage" }
+airship-network = { path = "src/core/network" }

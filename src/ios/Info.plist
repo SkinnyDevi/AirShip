@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.airship.AirShip</string>
+	<key>CFBundleName</key>
+	<string>AirShip</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AirShip requires local network access to discover and transfer files with nearby peers without internet.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_airship._tcp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>AirShip requires camera access to capture and share photos directly in your package.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AirShip requires photo library access to select and share photos and videos.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+</dict>
+</plist>
