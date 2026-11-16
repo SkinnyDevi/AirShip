@@ -47,6 +47,7 @@ android {
                 "../corebridge",
                 "../designsystem",
                 "../features",
+                "../service",
                 "src/main/java"
             )
         }

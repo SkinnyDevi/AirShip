@@ -12,7 +12,9 @@ src/android/
 ├── gradlew                    # Unix gradle wrapper
 ├── app/                       # Android application module
 │   ├── build.gradle.kts       # Jetpack Compose & dependency definitions
-│   └── src/main/AndroidManifest.xml # Permissions (mDNS, Multicast, ForegroundService)
+│   └── src/main/
+│       ├── AndroidManifest.xml # Permissions (mDNS, Multicast, ForegroundService)
+│       └── java/com/airship/MainActivity.kt # Compose entry point & tab orchestration
 ├── corebridge/                # UniFFI Kotlin bindings wrapped in Kotlin Coroutines and Flow<T>
 ├── designsystem/              # Reusable Compose components (Blimp logo, segmented toggle, floating bottom bar)
 ├── features/
@@ -40,7 +42,7 @@ src/android/
    > *Note*: `MainActivity` currently initializes the ViewModels with `MockCoreBridge` until the compiled Rust `.so` libraries and UniFFI Kotlin bindings are wired into `corebridge/`.
 6. To run unit tests in Android Studio, right-click `app/src/test/java/com/airship/AirShipViewModelTest.kt` and select **Run 'AirShipViewModelTest'**.
 
-> **Source-Set Layout Note**: Kotlin sources under `app/src/main/com/airship/` and `src/android/MainActivity.kt` currently differ from the `sourceSets` paths listed in `app/build.gradle.kts` (`../corebridge`, `../designsystem`, `../features`, `src/main/java`). Ensure `MainActivity.kt` sits in `app/src/main/java/com/airship/` (or `src/main/com/airship/`) and `app/build.gradle.kts` `sourceSets` includes those directories before compiling `:app`.
+> **Source-Set Layout Note**: `MainActivity.kt` resides in `app/src/main/java/com/airship/MainActivity.kt`, and `app/build.gradle.kts` `sourceSets` includes `../corebridge`, `../designsystem`, `../features`, `../service`, and `src/main/java`.
 
 ## Compiling & Testing via Gradle CLI
 

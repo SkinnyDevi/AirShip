@@ -16,7 +16,6 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val coreBridge: AirShipCoreBridge
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(
         SettingsUiState(
             deviceAlias = coreBridge.getLocalUserNameId(),
