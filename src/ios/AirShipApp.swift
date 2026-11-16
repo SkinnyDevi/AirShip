@@ -1,4 +1,5 @@
 import SwiftUI
+import AirShipKit
 
 @main
 public struct AirShipApp: App {

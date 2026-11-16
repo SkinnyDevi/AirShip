@@ -17,7 +17,7 @@ let package = Package(
         .target(
             name: "AirShipKit",
             path: ".",
-            exclude: ["Tests", "Info.plist", "README.md"],
+            exclude: ["Tests", "Info.plist", "README.md", "AirShipApp.swift", "AirShip.xcodeproj"],
             sources: [
                 "CoreBridge",
                 "DesignSystem",

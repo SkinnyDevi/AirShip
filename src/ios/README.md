@@ -6,6 +6,7 @@ Native Swift 6 + SwiftUI client for AirShip consuming compiled Rust XCFrameworks
 
 ```
 src/ios/
+├── AirShip.xcodeproj/      # Xcode iOS App project (AirShip target + AirShip scheme)
 ├── Package.swift           # Swift Package Manager manifest (AirShipKit library + AirShipKitTests)
 ├── Info.plist              # Platform permissions (mDNS, Camera, Photos)
 ├── AirShipApp.swift        # App entry point with primary tab orchestration
@@ -30,24 +31,18 @@ src/ios/
 
 ## Compiling & Running in Xcode
 
-`src/ios` currently exposes `AirShipKit` as a Swift Package (`Package.swift`) alongside the SwiftUI `@main` entry point (`AirShipApp.swift`) and `Info.plist`.
+### 1. Running the iOS App on Simulator or iPhone (`AirShip.xcodeproj`)
 
-### 1. Building & Testing `AirShipKit` in Xcode
-
-1. Open **Xcode** and select **File > Open...**, then choose `src/ios/Package.swift` (or run `open src/ios/Package.swift` from Terminal).
-2. Wait for Xcode to resolve the package targets (`AirShipKit` and `AirShipKitTests`).
-3. Choose a destination from the scheme toolbar (e.g., an **iOS Simulator** or **My Mac**).
-4. Compile the library with **Product > Build** (`Cmd + B`).
-5. Run the ViewModel unit tests with **Product > Test** (`Cmd + U`).
-
-### 2. Running the Full iOS App (`AirShipApp.swift`)
-
-Because `Package.swift` defines `AirShipKit` as a library product (excluding `AirShipApp.swift` and `Info.plist` from the library target), launching the UI on an iOS Simulator or physical device requires an Xcode **iOS App** project target:
-
-1. In Xcode, create or open an **iOS App** project (SwiftUI App lifecycle) and add `src/ios/` as a local Swift Package dependency linking `AirShipKit`.
-2. Include `AirShipApp.swift` as the app target's entry point (or import `AirShipKit` from your app target) and configure its **Info** / `Info.plist` with the permission keys in `src/ios/Info.plist` (`NSLocalNetworkUsageDescription`, `NSBonjourServices` with `_airship._tcp`, `NSCameraUsageDescription`, and `NSPhotoLibraryUsageDescription`).
-3. Select an iOS Simulator or connected iPhone/iPad and press **Product > Run** (`Cmd + R`).
+1. Open `src/ios/AirShip.xcodeproj` in Xcode (do **not** open `Package.swift` directly if you want to run the app, because `Package.swift` only exposes the `AirShipKit` library).
+2. Select the **AirShip** scheme and choose your connected **iPhone** or an **iOS Simulator**.
+3. For a physical iPhone, open the **AirShip** target > **Signing & Capabilities**, select your Apple **Team**, and set a unique **Bundle Identifier** if needed.
+4. Press **Product > Run** (`Cmd + R`).
    > *Note*: `AirShipApp` currently initializes views with `MockCoreBridge` until the compiled Rust XCFramework and generated UniFFI Swift bindings are linked into `CoreBridge/`.
+
+### 2. Building & Testing `AirShipKit` via Swift Package Manager
+
+1. Open `src/ios/Package.swift` in Xcode (or run `swift test` from CLI) to run `AirShipKitTests`.
+2. Choose a destination (an **iOS Simulator** or **My Mac**) and run **Product > Test** (`Cmd + U`).
 
 ## Compiling & Testing via CLI (Swift Package Manager)
 

@@ -117,42 +117,42 @@ public final class MockCoreBridge: AirShipCoreBridgeProtocol, @unchecked Sendabl
     public func stopBroadcasting() async throws {}
 
     public func listPeers() async throws -> [PeerBridgeModel] {
-        lock.lock()
-        defer { lock.unlock() }
-        return peers
+        lock.withLock {
+            peers
+        }
     }
 
     public func setPeerTrust(peerIdentifier: String, isTrusted: Bool) async throws {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let matchingIndex = peers.firstIndex(where: { $0.id == peerIdentifier }) else {
-            throw CoreBridgeError.peerNotFound(peerIdentifier)
+        try lock.withLock {
+            guard let matchingIndex = peers.firstIndex(where: { $0.id == peerIdentifier }) else {
+                throw CoreBridgeError.peerNotFound(peerIdentifier)
+            }
+            let existing = peers[matchingIndex]
+            peers[matchingIndex] = PeerBridgeModel(
+                id: existing.id,
+                displayAlias: existing.displayAlias,
+                fingerprintHex: existing.fingerprintHex,
+                isTrusted: isTrusted
+            )
         }
-        let existing = peers[matchingIndex]
-        peers[matchingIndex] = PeerBridgeModel(
-            id: existing.id,
-            displayAlias: existing.displayAlias,
-            fingerprintHex: existing.fingerprintHex,
-            isTrusted: isTrusted
-        )
     }
 
     public func addPeer(identifier: String, alias: String, fingerprintHex: String, isTrusted: Bool) async throws {
-        lock.lock()
-        defer { lock.unlock() }
-        peers.append(PeerBridgeModel(
-            id: identifier,
-            displayAlias: alias,
-            fingerprintHex: fingerprintHex,
-            isTrusted: isTrusted
-        ))
+        lock.withLock {
+            peers.append(PeerBridgeModel(
+                id: identifier,
+                displayAlias: alias,
+                fingerprintHex: fingerprintHex,
+                isTrusted: isTrusted
+            ))
+        }
     }
 
     public func removePeer(identifier: String) async throws -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        let initialCount = peers.count
-        peers.removeAll { $0.id == identifier }
-        return peers.count < initialCount
+        lock.withLock {
+            let initialCount = peers.count
+            peers.removeAll { $0.id == identifier }
+            return peers.count < initialCount
+        }
     }
 }
