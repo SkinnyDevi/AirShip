@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.airship"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.airship"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
 
@@ -59,7 +59,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
 
-    implementation(platform(libs.androidx.compose.ui))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
