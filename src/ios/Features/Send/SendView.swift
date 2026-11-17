@@ -1,121 +1,124 @@
 import SwiftUI
 
 public struct SendView: View {
-    @ObservedObject public var viewModel: SendViewModel
-    @Binding public var activeTab: NavigationTab
+	@ObservedObject public var viewModel: SendViewModel
+	@Binding public var activeTab: NavigationTab
 
-    public init(viewModel: SendViewModel, activeTab: Binding<NavigationTab>) {
-        self.viewModel = viewModel
-        self._activeTab = activeTab
-    }
+	public init(viewModel: SendViewModel, activeTab: Binding<NavigationTab>) {
+		self.viewModel = viewModel
+		self._activeTab = activeTab
+	}
 
-    public var body: some View {
-        ZStack {
-            AirShipTheme.primaryDarkBackground.ignoresSafeArea()
+	public var body: some View {
+		ZStack {
+			AirShipTheme.primaryDarkBackground.ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                SegmentedToggleView(selectedOption: $viewModel.selectedMode)
-                    .padding(.horizontal)
+			VStack(spacing: 20) {
+				SegmentedToggleView(selectedOption: $viewModel.selectedMode)
+					.padding(.horizontal)
 
-                Text("Create your package")
-                    .font(.title2.bold())
-                    .foregroundStyle(AirShipTheme.textPrimary)
+				Text("Create your package")
+					.font(.title2.bold())
+					.foregroundStyle(AirShipTheme.textPrimary)
 
-                attachmentBar
+				AttachmentButtonsBar
 
-                stagingArea
+				ItemsInPackageContainer
 
-                Spacer()
+				Spacer()
 
-                FloatingBottomBar(activeTab: $activeTab)
-                    .padding(.bottom, 16)
-            }
-            .padding(.top)
-        }
-    }
+				FloatingBottomBar(activeTab: $activeTab)
+					.padding(.bottom, 16)
+			}
+			.padding(.top)
+		}
+	}
 
-    private var attachmentBar: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 12) {
-                attachmentButton("Photos", icon: "photo") {
-                    viewModel.addPhotoAttachment(name: "IMG_001.jpg", size: 2_450_000)
-                }
-                attachmentButton("Camera", icon: "camera") {
-                    viewModel.addCameraAttachment(name: "CAM_SNAP.jpg", size: 3_100_000)
-                }
-                attachmentButton("Files", icon: "folder") {
-                    viewModel.addFileAttachment(name: "Report.pdf", size: 5_200_000, mimeType: "application/pdf")
-                }
-                attachmentButton("Text", icon: "doc.text") {
-                    viewModel.addTextAttachment(textSnippet: "Hello from AirShip!")
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
+	private var AttachmentButtonsBar: some View {
+		GlassEffectContainer(spacing: 12) {
+			HStack(spacing: 12) {
+				AttachmentButton("Photos", icon: "photo") {
+					viewModel.addPhotoAttachment(name: "IMG_001.jpg", size: 2_450_000)
+				}
+				AttachmentButton("Camera", icon: "camera") {
+					viewModel.addCameraAttachment(name: "CAM_SNAP.jpg", size: 3_100_000)
+				}
+				AttachmentButton("Files", icon: "folder") {
+					viewModel.addFileAttachment(
+						name: "Report.pdf", size: 5_200_000, mimeType: "application/pdf")
+				}
+				AttachmentButton("Text", icon: "doc.text") {
+					viewModel.addTextAttachment(textSnippet: "Hello from AirShip!")
+				}
+			}
+		}
+		.padding(.horizontal)
+	}
 
-    private func attachmentButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                Text(title)
-                    .font(.caption)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .foregroundStyle(AirShipTheme.accentCyan)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-    }
+	private func AttachmentButton(_ title: String, icon: String, action: @escaping () -> Void)
+		-> some View
+	{
+		Button(action: action) {
+			VStack(spacing: 6) {
+				Image(systemName: icon)
+					.font(.system(size: 20))
+				Text(title)
+					.font(.caption)
+			}
+			.frame(maxWidth: .infinity)
+			.padding(.vertical, 12)
+			.foregroundStyle(AirShipTheme.accentCyan)
+			.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 12))
+		}
+		.buttonStyle(.plain)
+	}
 
-    private var stagingArea: some View {
-        VStack {
-            if viewModel.stagedItems.isEmpty {
-                emptyStagingPlaceholder
-            } else {
-                List(viewModel.stagedItems, rowContent: stagedItemRow)
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: 280)
-        .glassEffect(.regular, in: .rect(cornerRadius: AirShipTheme.cardCornerRadius))
-        .padding(.horizontal)
-    }
+	private var ItemsInPackageContainer: some View {
+		VStack {
+			if viewModel.stagedItems.isEmpty {
+				EmptyPackageContainer
+			} else {
+				List(viewModel.stagedItems, rowContent: ItemsInPackageRow)
+					.listStyle(.plain)
+					.scrollContentBackground(.hidden)
+			}
+		}
+		.frame(maxWidth: .infinity, maxHeight: 280)
+		.glassEffect(.regular, in: .rect(cornerRadius: AirShipTheme.cardCornerRadius))
+		.padding(.horizontal)
+	}
 
-    private var emptyStagingPlaceholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "tray")
-                .font(.system(size: 36))
-                .foregroundStyle(AirShipTheme.textSecondary)
-            Text("No files selected")
-                .font(.subheadline)
-                .foregroundStyle(AirShipTheme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+	private var EmptyPackageContainer: some View {
+		VStack(spacing: 8) {
+			Image(systemName: "tray")
+				.font(.system(size: 36))
+				.foregroundStyle(AirShipTheme.textSecondary)
+			Text("No files selected")
+				.font(.subheadline)
+				.foregroundStyle(AirShipTheme.textSecondary)
+		}
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+	}
 
-    private func stagedItemRow(_ item: StagedItem) -> some View {
-        HStack {
-            Image(systemName: item.systemIconName)
-                .foregroundStyle(AirShipTheme.accentCyan)
-            VStack(alignment: .leading) {
-                Text(item.name)
-                    .foregroundStyle(AirShipTheme.textPrimary)
-                Text("\(item.byteSize / 1024) KB")
-                    .font(.caption)
-                    .foregroundStyle(AirShipTheme.textSecondary)
-            }
-            Spacer()
-            Button {
-                viewModel.removeItem(id: item.id)
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(AirShipTheme.textSecondary)
-            }
-        }
-        .listRowBackground(Color.clear)
-    }
+	private func ItemsInPackageRow(_ item: StagedItem) -> some View {
+		HStack {
+			Image(systemName: item.systemIconName)
+				.foregroundStyle(AirShipTheme.accentCyan)
+			VStack(alignment: .leading) {
+				Text(item.name)
+					.foregroundStyle(AirShipTheme.textPrimary)
+				Text("\(item.byteSize / 1024) KB")
+					.font(.caption)
+					.foregroundStyle(AirShipTheme.textSecondary)
+			}
+			Spacer()
+			Button {
+				viewModel.removeItem(id: item.id)
+			} label: {
+				Image(systemName: "xmark.circle.fill")
+					.foregroundStyle(AirShipTheme.textSecondary)
+			}
+		}
+		.listRowBackground(Color.clear)
+	}
 }
