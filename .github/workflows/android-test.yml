@@ -1,0 +1,63 @@
+name: Android Tests (Kotlin / Gradle)
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  android-test:
+    name: Android Unit Tests & Debug Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (Gradle daemon JVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Configure Android SDK and install Platform 37.0
+        run: |
+          ANDROID_SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          BOOTSTRAP_SDKMANAGER="${ANDROID_SDK}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$BOOTSTRAP_SDKMANAGER" ]; then
+            BOOTSTRAP_SDKMANAGER=$(find "${ANDROID_SDK}/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n 1)
+          fi
+          yes | "$BOOTSTRAP_SDKMANAGER" --licenses > /dev/null || true
+          "$BOOTSTRAP_SDKMANAGER" "cmdline-tools;latest" "platform-tools"
+
+          SDKMANAGER="${ANDROID_SDK}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-37.0" "build-tools;36.0.0"
+
+          echo "ANDROID_HOME=${ANDROID_SDK}" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK}" >> "$GITHUB_ENV"
+          echo "${ANDROID_SDK}/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "${ANDROID_SDK}/platform-tools" >> "$GITHUB_PATH"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Android unit tests
+        working-directory: src/android
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Build Debug APK
+        working-directory: src/android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Android test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: src/android/app/build/reports/tests/
+          if-no-files-found: ignore

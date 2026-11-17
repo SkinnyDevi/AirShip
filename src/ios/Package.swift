@@ -1,11 +1,11 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
     name: "AirShipKit",
     platforms: [
-        .iOS(.v17),
-        .macOS(.v14),
+        .iOS(.v26),
+        .macOS(.v26),
     ],
     products: [
         .library(
@@ -17,7 +17,7 @@ let package = Package(
         .target(
             name: "AirShipKit",
             path: ".",
-            exclude: ["Tests", "Info.plist", "README.md"],
+            exclude: ["Tests", "Info.plist", "README.md", "AirShipApp.swift", "AirShip.xcodeproj"],
             sources: [
                 "CoreBridge",
                 "DesignSystem",

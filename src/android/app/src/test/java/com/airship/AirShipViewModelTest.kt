@@ -8,8 +8,13 @@ import com.airship.features.receive.ReceivedItem
 import com.airship.features.send.SendTransferStatus
 import com.airship.features.send.SendViewModel
 import com.airship.features.trustlist.TrustListViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,6 +28,7 @@ class AirShipViewModelTest {
 
     @Before
     fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         mockBridge = MockCoreBridge(
             localUserNameId = "TEST_ANDROID_DEVICE",
             localFingerprint = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
@@ -35,6 +41,11 @@ class AirShipViewModelTest {
                 )
             )
         )
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     // -------------------------------------------------------------------------

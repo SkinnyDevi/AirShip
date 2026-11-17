@@ -46,9 +46,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Spacer(modifier = Modifier.weight(1f))
-
             BlimpLogo(size = 140.dp)
-
             Spacer(modifier = Modifier.weight(0.3f))
 
             Column(
@@ -70,7 +68,6 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.weight(0.3f))
-
             SegmentedToggle(
                 selectedOption = uiState.selectedMode,
                 onOptionSelected = { viewModel.updateSelectedMode(it) },
@@ -78,7 +75,6 @@ fun HomeScreen(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-
             FloatingBottomBar(
                 currentTab = activeTab,
                 onTabSelected = onTabSelected,

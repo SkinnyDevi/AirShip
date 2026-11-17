@@ -27,26 +27,31 @@ public struct FloatingBottomBar: View {
     }
 
     public var body: some View {
-        HStack(spacing: 40) {
-            ForEach(NavigationTab.allCases) { tab in
-                let isSelected = activeTab == tab
-                Button {
-                    activeTab = tab
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.systemIconName)
-                            .font(.system(size: 22, weight: .semibold))
-                        Text(tab.rawValue)
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(isSelected ? AirShipTheme.accentCyan : AirShipTheme.textSecondary)
-                }
+        GlassEffectContainer(spacing: 24) {
+            HStack(spacing: 36) {
+                ForEach(NavigationTab.allCases, content: tabButton)
             }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 14)
+            .glassEffect(.regular.interactive(), in: .capsule)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 14)
-        .background(AirShipTheme.secondaryCardBackground.opacity(0.95))
-        .clipShape(Capsule())
-        .shadow(color: Color.black.opacity(0.35), radius: 10, y: 5)
+    }
+
+    private func tabButton(for tab: NavigationTab) -> some View {
+        let isSelected = activeTab == tab
+        return Button {
+            withAnimation(.bouncy) {
+                activeTab = tab
+            }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: tab.systemIconName)
+                    .font(.system(size: 22, weight: .semibold))
+                Text(tab.rawValue)
+                    .font(.caption2)
+            }
+            .foregroundStyle(isSelected ? AirShipTheme.accentCyan : AirShipTheme.textSecondary)
+        }
+        .buttonStyle(.plain)
     }
 }
