@@ -1,0 +1,52 @@
+name: Android Tests (Kotlin / Gradle)
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  android-test:
+    name: Android Unit Tests & Debug Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (Gradle daemon JVM)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK Platform 37
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-37" "platform-tools"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Android unit tests
+        working-directory: src/android
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Build Debug APK
+        working-directory: src/android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Android test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: src/android/app/build/reports/tests/
+          if-no-files-found: ignore
