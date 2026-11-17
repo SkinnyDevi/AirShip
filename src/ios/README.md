@@ -23,7 +23,7 @@ src/ios/
 
 ## Prerequisites
 
-- **macOS with Xcode** (Swift 6 toolchain; targets **iOS 17+** and **macOS 14+** in `Package.swift`).
+- **macOS with Xcode** (Swift 6 toolchain; targets **iOS 26+** and **macOS 26+** in `Package.swift` for Liquid Glass support).
 - Ensure the active command-line developer tools point to `Xcode.app` (not standalone CommandLineTools) to avoid SDK version mismatches:
   ```bash
   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer

@@ -35,28 +35,29 @@ public struct TrustListView: View {
     }
 
     private var headerWithSearchAndAdd: some View {
-        HStack {
+        GlassEffectContainer(spacing: 10) {
             HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(AirShipTheme.textSecondary)
-                TextField("Search by USER_NAME_ID", text: $viewModel.searchQuery)
-                    .foregroundStyle(AirShipTheme.textPrimary)
-            }
-            .padding(10)
-            .background(AirShipTheme.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            Button {
-                withAnimation {
-                    viewModel.isAddDrawerExpanded.toggle()
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(AirShipTheme.textSecondary)
+                    TextField("Search by USER_NAME_ID", text: $viewModel.searchQuery)
+                        .foregroundStyle(AirShipTheme.textPrimary)
                 }
-            } label: {
-                Image(systemName: viewModel.isAddDrawerExpanded ? "xmark" : "plus")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(AirShipTheme.primaryDarkBackground)
-                    .frame(width: 44, height: 44)
-                    .background(AirShipTheme.accentCyan)
-                    .clipShape(Circle())
+                .padding(10)
+                .glassEffect(.regular, in: .capsule)
+
+                Button {
+                    withAnimation {
+                        viewModel.isAddDrawerExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: viewModel.isAddDrawerExpanded ? "xmark" : "plus")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AirShipTheme.primaryDarkBackground)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.regular.tint(AirShipTheme.accentCyan).interactive(), in: .circle)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal)
@@ -80,61 +81,62 @@ public struct TrustListView: View {
                     .foregroundStyle(AirShipTheme.primaryDarkBackground)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(AirShipTheme.accentCyan)
-                    .clipShape(Capsule())
+                    .glassEffect(.regular.tint(AirShipTheme.accentCyan).interactive(), in: .capsule)
             }
+            .buttonStyle(.plain)
         }
         .padding()
-        .background(AirShipTheme.secondaryCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AirShipTheme.cardCornerRadius))
+        .glassEffect(.regular, in: .rect(cornerRadius: AirShipTheme.cardCornerRadius))
         .padding(.horizontal)
     }
 
     private var peerListSection: some View {
-        List {
-            ForEach(viewModel.filteredPeers) { peer in
-                HStack(spacing: 14) {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(AirShipTheme.accentCyan)
+        List(viewModel.filteredPeers, rowContent: peerRow)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .glassEffect(.regular, in: .rect(cornerRadius: AirShipTheme.cardCornerRadius))
+            .padding(.horizontal)
+    }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(peer.displayAlias)
-                            .font(.headline)
-                            .foregroundStyle(AirShipTheme.textPrimary)
-                        Text(peer.id)
-                            .font(.caption)
-                            .foregroundStyle(AirShipTheme.textSecondary)
-                    }
+    private func peerRow(_ peer: PeerBridgeModel) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 32))
+                .foregroundStyle(AirShipTheme.accentCyan)
 
-                    Spacer()
-
-                    Button {
-                        Task {
-                            await viewModel.toggleTrust(for: peer)
-                        }
-                    } label: {
-                        Image(systemName: peer.isTrusted ? "heart.fill" : "heart")
-                            .font(.system(size: 22))
-                            .foregroundStyle(peer.isTrusted ? AirShipTheme.accentHeart : AirShipTheme.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        Task {
-                            await viewModel.removePeer(peer: peer)
-                        }
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 18))
-                            .foregroundStyle(Color.red.opacity(0.8))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .listRowBackground(AirShipTheme.secondaryCardBackground)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(peer.displayAlias)
+                    .font(.headline)
+                    .foregroundStyle(AirShipTheme.textPrimary)
+                Text(peer.id)
+                    .font(.caption)
+                    .foregroundStyle(AirShipTheme.textSecondary)
             }
+
+            Spacer()
+            peerActionButtons(peer)
         }
-        .listStyle(.plain)
-        .padding(.horizontal)
+        .listRowBackground(Color.clear)
+    }
+
+    @ViewBuilder
+    private func peerActionButtons(_ peer: PeerBridgeModel) -> some View {
+        Button {
+            Task { await viewModel.toggleTrust(for: peer) }
+        } label: {
+            Image(systemName: peer.isTrusted ? "heart.fill" : "heart")
+                .font(.system(size: 22))
+                .foregroundStyle(peer.isTrusted ? AirShipTheme.accentHeart : AirShipTheme.textSecondary)
+        }
+        .buttonStyle(.plain)
+
+        Button {
+            Task { await viewModel.removePeer(peer: peer) }
+        } label: {
+            Image(systemName: "trash")
+                .font(.system(size: 18))
+                .foregroundStyle(Color.red.opacity(0.8))
+        }
+        .buttonStyle(.plain)
     }
 }

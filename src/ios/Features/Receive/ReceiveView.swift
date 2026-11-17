@@ -69,35 +69,12 @@ public struct ReceiveView: View {
                 .font(.title2.bold())
                 .foregroundStyle(AirShipTheme.textPrimary)
 
-            List(items) { item in
-                HStack {
-                    Image(systemName: item.isTextSnippet ? "doc.text" : "doc")
-                        .foregroundStyle(AirShipTheme.accentCyan)
-
-                    VStack(alignment: .leading) {
-                        Text(item.name)
-                            .foregroundStyle(AirShipTheme.textPrimary)
-                        Text("\(item.byteSize / 1024) KB")
-                            .font(.caption)
-                            .foregroundStyle(AirShipTheme.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        viewModel.downloadSingleItem(id: item.id)
-                    } label: {
-                        Image(systemName: item.isDownloaded ? "checkmark.circle.fill" : "arrow.down.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(item.isDownloaded ? Color.green : AirShipTheme.accentCyan)
-                    }
-                }
-                .listRowBackground(AirShipTheme.secondaryCardBackground)
-            }
-            .listStyle(.plain)
-            .frame(maxHeight: 280)
-            .clipShape(RoundedRectangle(cornerRadius: AirShipTheme.cardCornerRadius))
-            .padding(.horizontal)
+            List(items, rowContent: receivedItemRow)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .frame(maxHeight: 280)
+                .glassEffect(.regular, in: .rect(cornerRadius: AirShipTheme.cardCornerRadius))
+                .padding(.horizontal)
 
             Button {
                 viewModel.downloadAllItems()
@@ -107,10 +84,36 @@ public struct ReceiveView: View {
                     .foregroundStyle(AirShipTheme.primaryDarkBackground)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(AirShipTheme.accentCyan)
-                    .clipShape(Capsule())
+                    .glassEffect(.regular.tint(AirShipTheme.accentCyan).interactive(), in: .capsule)
             }
+            .buttonStyle(.plain)
             .padding(.horizontal)
         }
+    }
+
+    private func receivedItemRow(_ item: ReceivedPackageItem) -> some View {
+        HStack {
+            Image(systemName: item.isTextSnippet ? "doc.text" : "doc")
+                .foregroundStyle(AirShipTheme.accentCyan)
+
+            VStack(alignment: .leading) {
+                Text(item.name)
+                    .foregroundStyle(AirShipTheme.textPrimary)
+                Text("\(item.byteSize / 1024) KB")
+                    .font(.caption)
+                    .foregroundStyle(AirShipTheme.textSecondary)
+            }
+
+            Spacer()
+
+            Button {
+                viewModel.downloadSingleItem(id: item.id)
+            } label: {
+                Image(systemName: item.isDownloaded ? "checkmark.circle.fill" : "arrow.down.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(item.isDownloaded ? Color.green : AirShipTheme.accentCyan)
+            }
+        }
+        .listRowBackground(Color.clear)
     }
 }
