@@ -97,4 +97,17 @@ final class AirShipViewModelTests: XCTestCase {
 		viewModel.searchQuery = "NonExistent"
 		XCTAssertEqual(viewModel.filteredPeers.count, 0)
 	}
+
+	// -------------------------------------------------------------------------
+	// Floating Bottom Bar: Horizontal Scrub Tab Resolution
+	// -------------------------------------------------------------------------
+
+	func testFloatingBottomBarTabResolution() {
+		XCTAssertNil(resolvedNavigationTab(atHorizontalOffset: 50, totalBarWidth: 0))
+		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: -10, totalBarWidth: 300), .transfer)
+		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: 50, totalBarWidth: 300), .transfer)
+		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: 150, totalBarWidth: 300), .trustList)
+		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: 250, totalBarWidth: 300), .settings)
+		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: 400, totalBarWidth: 300), .settings)
+	}
 }

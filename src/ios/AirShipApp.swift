@@ -22,20 +22,32 @@ public struct AirShipApp: App {
 
 	public var body: some Scene {
 		WindowGroup {
-			ZStack {
-				switch activeTab {
-				case .transfer:
-					if homeViewModel.selectedMode == .send {
-						SendView(viewModel: sendViewModel, activeTab: $activeTab)
-					} else {
-						ReceiveView(viewModel: receiveViewModel, activeTab: $activeTab)
-					}
-				case .trustList:
-					TrustListView(viewModel: trustListViewModel, activeTab: $activeTab)
-				case .settings:
-					SettingsView(viewModel: settingsViewModel, activeTab: $activeTab)
-				}
+			navigationTabView
+				.tint(AirShipTheme.accentCyan)
+				.preferredColorScheme(.dark)
+		}
+	}
+
+	private var navigationTabView: some View {
+		TabView(selection: $activeTab) {
+			Tab(NavigationTab.transfer.rawValue, systemImage: NavigationTab.transfer.systemIconName, value: NavigationTab.transfer) {
+				transferTabScreen
 			}
+			Tab(NavigationTab.trustList.rawValue, systemImage: NavigationTab.trustList.systemIconName, value: NavigationTab.trustList) {
+				TrustListView(viewModel: trustListViewModel)
+			}
+			Tab(NavigationTab.settings.rawValue, systemImage: NavigationTab.settings.systemIconName, value: NavigationTab.settings) {
+				SettingsView(viewModel: settingsViewModel)
+			}
+		}
+	}
+
+	@ViewBuilder
+	private var transferTabScreen: some View {
+		if homeViewModel.selectedMode == .send {
+			SendView(viewModel: sendViewModel)
+		} else {
+			ReceiveView(viewModel: receiveViewModel)
 		}
 	}
 }
