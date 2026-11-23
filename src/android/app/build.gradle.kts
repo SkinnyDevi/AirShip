@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.airship"
+    namespace = "com.skdvcsm.airship"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.airship"
+        applicationId = "com.skdvcsm.airship"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
