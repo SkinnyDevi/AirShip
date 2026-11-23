@@ -263,44 +263,42 @@ final class AirShipViewModelTests: XCTestCase {
 		)
 	}
 
-	func testSendViewModelNearbyPeersAndResetAfterCompletion() async throws {
+	func testNearbyPeerSelectorViewModelDiscoveryDispatchAndCleanup() async throws {
 		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipDispatchStage")
 		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
-		let viewModel = SendViewModel(
+		let sendViewModel = SendViewModel(
 			coreBridge: makeMockBridge(),
 			stagingService: stagingService
 		)
 
-		XCTAssertFalse(viewModel.canSendPackage)
-		XCTAssertEqual(viewModel.totalStagedByteSize, 0)
+		XCTAssertFalse(sendViewModel.canSendPackage)
 
-		viewModel.stageCapturedCameraImage(jpegBytes: Data([0xFF, 0xD8, 0xFF, 0xD9]))
-		viewModel.addTextAttachment(textSnippet: "Hello")
-		XCTAssertTrue(viewModel.canSendPackage)
-		XCTAssertEqual(viewModel.totalStagedByteSize, 9)
+		sendViewModel.stageCapturedCameraImage(jpegBytes: Data([0xFF, 0xD8, 0xFF, 0xD9]))
+		sendViewModel.addTextAttachment(textSnippet: "Hello")
+		XCTAssertTrue(sendViewModel.canSendPackage)
 
-		guard case .fileReference(let stagedFileURL) = viewModel.stagedItems[0].content else {
+		guard case .fileReference(let stagedFileURL) = sendViewModel.stagedItems[0].content else {
 			XCTFail("Expected fileReference for staged camera photo")
 			return
 		}
 		XCTAssertTrue(FileManager.default.fileExists(atPath: stagedFileURL.path))
 
-		await viewModel.loadNearbyPeers()
-		XCTAssertEqual(viewModel.nearbyPeers.count, 1)
-		XCTAssertEqual(viewModel.nearbyPeers[0].id, "USER_PEER_1")
+		let selectorViewModel = sendViewModel.makePeerSelectorViewModel()
+		XCTAssertEqual(selectorViewModel.stagedItems.count, 2)
+		XCTAssertEqual(selectorViewModel.totalStagedByteSize, 9)
+		XCTAssertEqual(selectorViewModel.transferState, .ready)
 
-		viewModel.prepareForRecipientSelection()
-		XCTAssertNil(viewModel.selectedRecipientPeerId)
-		XCTAssertEqual(viewModel.transferState, .staged)
+		await selectorViewModel.loadNearbyPeers()
+		XCTAssertEqual(selectorViewModel.nearbyPeers.count, 1)
+		XCTAssertEqual(selectorViewModel.nearbyPeers[0].id, "USER_PEER_1")
 
-		await viewModel.dispatchPackage(to: "USER_PEER_1")
-		XCTAssertEqual(viewModel.selectedRecipientPeerId, "USER_PEER_1")
-		XCTAssertEqual(viewModel.transferState, .completed)
+		await selectorViewModel.dispatchPackage(to: "USER_PEER_1")
+		XCTAssertEqual(selectorViewModel.selectedRecipientPeerId, "USER_PEER_1")
+		XCTAssertEqual(selectorViewModel.transferState, .completed)
 
-		viewModel.resetTransferAfterCompletion()
-		XCTAssertTrue(viewModel.stagedItems.isEmpty)
-		XCTAssertNil(viewModel.selectedRecipientPeerId)
-		XCTAssertEqual(viewModel.transferState, .empty)
+		selectorViewModel.finishCompletedTransfer()
+		XCTAssertTrue(sendViewModel.stagedItems.isEmpty)
+		XCTAssertEqual(sendViewModel.transferState, .empty)
 		XCTAssertFalse(FileManager.default.fileExists(atPath: stagedFileURL.path))
 	}
 

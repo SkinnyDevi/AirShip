@@ -4,31 +4,12 @@ import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-// -----------------------------------------------------------------------------
-// 1. Send Transfer State
-// -----------------------------------------------------------------------------
-
-public enum SendTransferState: Equatable {
-	case empty
-	case staged
-	case sending
-	case completed
-	case failed(String)
-}
-
-// -----------------------------------------------------------------------------
-// 2. Send ViewModel
-// -----------------------------------------------------------------------------
-
 @MainActor
 public final class SendViewModel: ObservableObject {
 	@Published public private(set) var stagedItems: [StagedItem] = []
 	@Published public private(set) var transferState: SendTransferState = .empty
 	@Published public private(set) var isStagingAttachments = false
 	@Published public private(set) var attachmentErrorMessage: String?
-	@Published public private(set) var nearbyPeers: [PeerBridgeModel] = []
-	@Published public private(set) var isDiscoveringPeers = false
-	@Published public private(set) var selectedRecipientPeerId: String?
 
 	private let coreBridge: AirShipCoreBridgeProtocol
 	private let stagingService: AttachmentStagingServiceProtocol
@@ -36,12 +17,6 @@ public final class SendViewModel: ObservableObject {
 
 	public var canSendPackage: Bool {
 		!stagedItems.isEmpty && !isStagingAttachments
-	}
-
-	public var totalStagedByteSize: Int64 {
-		stagedItems.reduce(0) { accumulated, nextItem in
-			accumulated + nextItem.byteSize
-		}
 	}
 
 	public init(
@@ -190,34 +165,26 @@ public final class SendViewModel: ObservableObject {
 		attachmentErrorMessage = nil
 	}
 
-	public func loadNearbyPeers() async {
-		isDiscoveringPeers = true
-		defer { isDiscoveringPeers = false }
-
-		do {
-			nearbyPeers = try await coreBridge.listPeers()
-		} catch {
-			reportAttachmentError(error)
-		}
-	}
-
-	public func prepareForRecipientSelection() {
-		selectedRecipientPeerId = nil
-		transferState = stagedItems.isEmpty ? .empty : .staged
-	}
-
-	public func resetTransferAfterCompletion() {
+	public func clearStagedItems() {
 		for stagedItem in stagedItems {
 			stagingService.removeStagedContent(for: stagedItem)
 		}
 		stagedItems.removeAll()
-		selectedRecipientPeerId = nil
 		transferState = .empty
+	}
+
+	public func makePeerSelectorViewModel() -> NearbyPeerSelectorViewModel {
+		NearbyPeerSelectorViewModel(
+			coreBridge: coreBridge,
+			stagedItems: stagedItems,
+			onTransferCompleted: { [weak self] in
+				self?.clearStagedItems()
+			}
+		)
 	}
 
 	public func dispatchPackage(to peerId: String) async {
 		guard !stagedItems.isEmpty else { return }
-		selectedRecipientPeerId = peerId
 		transferState = .sending
 		// Simulate transfer execution via bridge
 		transferState = .completed

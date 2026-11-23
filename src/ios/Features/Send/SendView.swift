@@ -50,7 +50,7 @@ public struct SendView: View {
 	private var configuredSendContent: some View {
 		sendContentWithSheets
 			.navigationDestination(isPresented: $isPeerSelectorPresented) {
-				NearbyPeerSelectorView(viewModel: viewModel)
+				NearbyPeerSelectorView(viewModel: viewModel.makePeerSelectorViewModel())
 			}
 			.alert("Unable to Attach Item", isPresented: attachmentErrorAlertBinding) {
 				Button("OK", role: .cancel) {
@@ -167,7 +167,6 @@ public struct SendView: View {
 
 	private var SendPackageActionButton: some View {
 		Button {
-			viewModel.prepareForRecipientSelection()
 			isPeerSelectorPresented = true
 		} label: {
 			Label(sendActionButtonTitle, systemImage: "paperplane.fill")

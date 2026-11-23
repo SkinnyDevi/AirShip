@@ -1,23 +1,15 @@
 import SwiftUI
 
-// -----------------------------------------------------------------------------
-// 1. Pure Formatting Helpers
-// -----------------------------------------------------------------------------
-
 private func packageItemCountLabel(count: Int) -> String {
 	return count == 1 ? "1 item" : "\(count) items"
 }
 
-// -----------------------------------------------------------------------------
-// 2. Nearby Peer Selector View
-// -----------------------------------------------------------------------------
-
 public struct NearbyPeerSelectorView: View {
-	@ObservedObject public var viewModel: SendViewModel
+	@StateObject private var viewModel: NearbyPeerSelectorViewModel
 	@Environment(\.dismiss) private var dismiss
 
-	public init(viewModel: SendViewModel) {
-		self.viewModel = viewModel
+	public init(viewModel: @autoclosure @escaping @MainActor () -> NearbyPeerSelectorViewModel) {
+		self._viewModel = StateObject(wrappedValue: viewModel())
 	}
 
 	public var body: some View {
@@ -33,8 +25,8 @@ public struct NearbyPeerSelectorView: View {
 		}
 		.navigationTitle("Select Recipient")
 		#if os(iOS)
-		.navigationBarTitleDisplayMode(.inline)
-		.toolbar(.visible, for: .navigationBar)
+			.navigationBarTitleDisplayMode(.inline)
+			.toolbar(.visible, for: .navigationBar)
 		#endif
 		.toolbar {
 			ToolbarItem(placement: .primaryAction) {
@@ -43,6 +35,13 @@ public struct NearbyPeerSelectorView: View {
 		}
 		.task {
 			await viewModel.loadNearbyPeers()
+		}
+		.alert("Unable to Load Peers", isPresented: errorAlertBinding) {
+			Button("OK", role: .cancel) {
+				viewModel.dismissError()
+			}
+		} message: {
+			Text(viewModel.errorMessage ?? "")
 		}
 	}
 
@@ -85,7 +84,7 @@ public struct NearbyPeerSelectorView: View {
 			sendingProgressView
 		case .completed:
 			completedTransferView
-		case .empty, .staged, .failed:
+		case .ready, .failed:
 			peerSelectionContent
 		}
 	}
@@ -218,7 +217,7 @@ public struct NearbyPeerSelectorView: View {
 
 	private var doneButton: some View {
 		Button {
-			viewModel.resetTransferAfterCompletion()
+			viewModel.finishCompletedTransfer()
 			dismiss()
 		} label: {
 			Text("Done")
@@ -230,5 +229,16 @@ public struct NearbyPeerSelectorView: View {
 		}
 		.buttonStyle(.plain)
 		.padding(.horizontal, 32)
+	}
+
+	private var errorAlertBinding: Binding<Bool> {
+		Binding(
+			get: { viewModel.errorMessage != nil },
+			set: { isPresented in
+				if !isPresented {
+					viewModel.dismissError()
+				}
+			}
+		)
 	}
 }
