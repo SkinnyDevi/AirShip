@@ -35,8 +35,9 @@ public struct NearbyPeerSelectorView: View {
 		}
 		.task {
 			await viewModel.loadNearbyPeers()
+			await viewModel.startObservingNearbyPeers()
 		}
-		.alert("Unable to Load Peers", isPresented: errorAlertBinding) {
+		.alert("Transfer Error", isPresented: errorAlertBinding) {
 			Button("OK", role: .cancel) {
 				viewModel.dismissError()
 			}
@@ -52,7 +53,6 @@ public struct NearbyPeerSelectorView: View {
 			Image(systemName: "arrow.clockwise")
 				.foregroundStyle(AirShipTheme.accentCyan)
 		}
-		.disabled(viewModel.isDiscoveringPeers)
 	}
 
 	private var packageSummaryCard: some View {
@@ -192,13 +192,36 @@ public struct NearbyPeerSelectorView: View {
 	}
 
 	private var sendingProgressView: some View {
-		VStack(spacing: 16) {
+		VStack(spacing: 18) {
 			Spacer()
-			ProgressView("Sending package...")
-				.tint(AirShipTheme.accentCyan)
+			if let fraction = viewModel.transferProgressFraction {
+				ProgressView(value: fraction)
+					.tint(AirShipTheme.accentCyan)
+					.padding(.horizontal, 40)
+			} else {
+				ProgressView()
+					.tint(AirShipTheme.accentCyan)
+			}
+			Text(viewModel.transferStatusMessage)
+				.font(.headline)
 				.foregroundStyle(AirShipTheme.accentCyan)
+			cancelTransferButton
 			Spacer()
 		}
+	}
+
+	private var cancelTransferButton: some View {
+		Button {
+			Task { await viewModel.cancelActiveTransfer() }
+		} label: {
+			Text("Cancel")
+				.font(.subheadline.weight(.semibold))
+				.foregroundStyle(AirShipTheme.textSecondary)
+				.padding(.horizontal, 24)
+				.padding(.vertical, 10)
+				.glassEffect(.regular.interactive(), in: .capsule)
+		}
+		.buttonStyle(.plain)
 	}
 
 	private var completedTransferView: some View {

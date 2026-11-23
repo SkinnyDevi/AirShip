@@ -186,8 +186,34 @@ public final class SendViewModel: ObservableObject {
 	public func dispatchPackage(to peerId: String) async {
 		guard !stagedItems.isEmpty else { return }
 		transferState = .sending
-		// Simulate transfer execution via bridge
-		transferState = .completed
+		let outgoingItems = stagedItems.map(buildOutgoingItem)
+
+		do {
+			try await coreBridge.sendPackage(to: peerId, items: outgoingItems) { _ in }
+			transferState = .completed
+		} catch {
+			transferState = .failed(error.localizedDescription)
+		}
+	}
+
+	private func buildOutgoingItem(from stagedItem: StagedItem) -> OutgoingTransferItem {
+		let source: OutgoingPayloadSource
+		switch stagedItem.content {
+		case .fileReference(let fileURL):
+			source = .fileURL(fileURL)
+		case .textPayload(let textContent):
+			source = .textContent(textContent)
+		case .metadataOnly:
+			source = .textContent("")
+		}
+		return OutgoingTransferItem(
+			id: stagedItem.id,
+			name: stagedItem.name,
+			byteSize: stagedItem.byteSize,
+			mimeType: stagedItem.mimeType,
+			isTextSnippet: stagedItem.sourceKind == .textSnippet,
+			payloadSource: source
+		)
 	}
 
 	private func stageSinglePhotoPickerItem(_ pickerItem: PhotosPickerItem) async {

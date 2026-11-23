@@ -3,6 +3,9 @@ import SwiftUI
 
 @main
 public struct AirShipApp: App {
+	@Environment(\.scenePhase) private var scenePhase
+
+	private let coreBridge: AirShipCoreBridgeProtocol
 	@StateObject private var homeViewModel: HomeViewModel
 	@StateObject private var sendViewModel: SendViewModel
 	@StateObject private var receiveViewModel: ReceiveViewModel
@@ -12,12 +15,23 @@ public struct AirShipApp: App {
 	@State private var activeTab: NavigationTab = .transfer
 
 	public init() {
-		let bridge = MockCoreBridge()
-		_homeViewModel = StateObject(wrappedValue: HomeViewModel(coreBridge: bridge))
-		_sendViewModel = StateObject(wrappedValue: SendViewModel(coreBridge: bridge))
-		_receiveViewModel = StateObject(wrappedValue: ReceiveViewModel(coreBridge: bridge))
-		_trustListViewModel = StateObject(wrappedValue: TrustListViewModel(coreBridge: bridge))
-		_settingsViewModel = StateObject(wrappedValue: SettingsViewModel(coreBridge: bridge))
+		let bridge = LiveAirShipCoreBridge()
+		self.coreBridge = bridge
+
+		let homeModel = HomeViewModel(coreBridge: bridge)
+		let sendModel = SendViewModel(coreBridge: bridge)
+		let receiveModel = ReceiveViewModel(coreBridge: bridge)
+		let trustModel = TrustListViewModel(coreBridge: bridge)
+		let settingsModel = SettingsViewModel(coreBridge: bridge) {
+			homeModel.refreshIdentity()
+			receiveModel.refreshIdentity()
+		}
+
+		_homeViewModel = StateObject(wrappedValue: homeModel)
+		_sendViewModel = StateObject(wrappedValue: sendModel)
+		_receiveViewModel = StateObject(wrappedValue: receiveModel)
+		_trustListViewModel = StateObject(wrappedValue: trustModel)
+		_settingsViewModel = StateObject(wrappedValue: settingsModel)
 	}
 
 	public var body: some Scene {
@@ -25,6 +39,18 @@ public struct AirShipApp: App {
 			navigationTabView
 				.tint(AirShipTheme.accentCyan)
 				.preferredColorScheme(.dark)
+				.task {
+					await startNetworkingAndListener()
+				}
+				.onChange(of: scenePhase) { _, updatedPhase in
+					handleScenePhaseChange(updatedPhase)
+				}
+				.onChange(of: receiveViewModel.screenState) { _, updatedState in
+					if case .packageReceived = updatedState {
+						activeTab = .transfer
+						homeViewModel.selectedMode = .receive
+					}
+				}
 		}
 	}
 
@@ -85,6 +111,20 @@ public struct AirShipApp: App {
 			#if os(iOS)
 			.toolbar(.hidden, for: .navigationBar)
 			#endif
+		}
+	}
+
+	private func startNetworkingAndListener() async {
+		try? await coreBridge.startBroadcasting()
+		settingsViewModel.refreshNetworkStatus()
+		await receiveViewModel.startListeningForIncomingPackages()
+	}
+
+	private func handleScenePhaseChange(_ phase: ScenePhase) {
+		guard phase == .active else { return }
+		Task {
+			try? await coreBridge.startBroadcasting()
+			settingsViewModel.refreshNetworkStatus()
 		}
 	}
 }
