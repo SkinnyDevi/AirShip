@@ -2,11 +2,9 @@ import SwiftUI
 
 public struct TrustListView: View {
 	@ObservedObject public var viewModel: TrustListViewModel
-	@Binding public var activeTab: NavigationTab
 
-	public init(viewModel: TrustListViewModel, activeTab: Binding<NavigationTab>) {
+	public init(viewModel: TrustListViewModel) {
 		self.viewModel = viewModel
-		self._activeTab = activeTab
 	}
 
 	public var body: some View {
@@ -23,9 +21,6 @@ public struct TrustListView: View {
 				PeerListSectionContainer
 
 				Spacer()
-
-				FloatingBottomBar(activeTab: $activeTab)
-					.padding(.bottom, 16)
 			}
 			.padding(.top)
 		}

@@ -2,11 +2,9 @@ import SwiftUI
 
 public struct ReceiveView: View {
 	@ObservedObject public var viewModel: ReceiveViewModel
-	@Binding public var activeTab: NavigationTab
 
-	public init(viewModel: ReceiveViewModel, activeTab: Binding<NavigationTab>) {
+	public init(viewModel: ReceiveViewModel) {
 		self.viewModel = viewModel
-		self._activeTab = activeTab
 	}
 
 	public var body: some View {
@@ -20,9 +18,6 @@ public struct ReceiveView: View {
 				ReceiveStateContainer
 
 				Spacer()
-
-				FloatingBottomBar(activeTab: $activeTab)
-					.padding(.bottom, 16)
 			}
 			.padding(.top)
 		}

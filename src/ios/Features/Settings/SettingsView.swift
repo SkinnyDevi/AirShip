@@ -2,11 +2,9 @@ import SwiftUI
 
 public struct SettingsView: View {
   @ObservedObject public var viewModel: SettingsViewModel
-  @Binding public var activeTab: NavigationTab
 
-  public init(viewModel: SettingsViewModel, activeTab: Binding<NavigationTab>) {
+  public init(viewModel: SettingsViewModel) {
     self.viewModel = viewModel
-    self._activeTab = activeTab
   }
 
   public var body: some View {
@@ -75,9 +73,6 @@ public struct SettingsView: View {
         .scrollContentBackground(.hidden)
 
         Spacer()
-
-        FloatingBottomBar(activeTab: $activeTab)
-          .padding(.bottom, 16)
       }
       .padding(.top)
     }
