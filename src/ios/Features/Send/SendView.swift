@@ -1,9 +1,18 @@
+import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 public struct SendView: View {
 	@ObservedObject public var viewModel: SendViewModel
 	@Binding public var selectedMode: ModeSwitchOption
 	private let showsModeSwitcher: Bool
+
+	@State private var isPhotosPickerPresented = false
+	@State private var selectedPhotoPickerItems: [PhotosPickerItem] = []
+	@State private var isCameraPresented = false
+	@State private var isFileImporterPresented = false
+	@State private var isTextSheetPresented = false
+	@State private var isPeerSelectorPresented = false
 
 	public init(
 		viewModel: SendViewModel,
@@ -17,20 +26,73 @@ public struct SendView: View {
 
 	public var body: some View {
 		if showsModeSwitcher {
-			ZStack {
-				AirShipTheme.primaryDarkBackground.ignoresSafeArea()
+			NavigationStack {
+				ZStack {
+					AirShipTheme.primaryDarkBackground.ignoresSafeArea()
 
-				VStack(spacing: 20) {
-					SegmentedToggleView(selectedOption: $selectedMode)
-						.padding(.horizontal)
+					VStack(spacing: 20) {
+						SegmentedToggleView(selectedOption: $selectedMode)
+							.padding(.horizontal)
 
-					sendContent
+						configuredSendContent
+					}
+					.padding(.top)
 				}
-				.padding(.top)
+				#if os(iOS)
+				.toolbar(.hidden, for: .navigationBar)
+				#endif
 			}
 		} else {
-			sendContent
+			configuredSendContent
 		}
+	}
+
+	private var configuredSendContent: some View {
+		sendContentWithSheets
+			.navigationDestination(isPresented: $isPeerSelectorPresented) {
+				NearbyPeerSelectorView(viewModel: viewModel)
+			}
+			.alert("Unable to Attach Item", isPresented: attachmentErrorAlertBinding) {
+				Button("OK", role: .cancel) {
+					viewModel.dismissAttachmentError()
+				}
+			} message: {
+				Text(viewModel.attachmentErrorMessage ?? "")
+			}
+	}
+
+	private var sendContentWithSheets: some View {
+		sendContentWithPickers
+			.sheet(isPresented: $isTextSheetPresented) {
+				TextAttachmentSheet { submittedText in
+					viewModel.addTextAttachment(textSnippet: submittedText)
+				}
+			}
+			#if canImport(UIKit)
+			.fullScreenCover(isPresented: $isCameraPresented) {
+				cameraCaptureSheet
+			}
+			#endif
+	}
+
+	private var sendContentWithPickers: some View {
+		sendContent
+			.photosPicker(
+				isPresented: $isPhotosPickerPresented,
+				selection: $selectedPhotoPickerItems,
+				matching: .any(of: [.images, .videos]),
+				photoLibrary: .shared()
+			)
+			.onChange(of: selectedPhotoPickerItems) { _, updatedSelection in
+				handlePhotoSelectionChange(updatedSelection)
+			}
+			.fileImporter(
+				isPresented: $isFileImporterPresented,
+				allowedContentTypes: [.item],
+				allowsMultipleSelection: true
+			) { importResult in
+				viewModel.handleFileImporterResult(importResult)
+			}
 	}
 
 	private var sendContent: some View {
@@ -41,9 +103,17 @@ public struct SendView: View {
 
 			AttachmentButtonsBar
 
+			if viewModel.isStagingAttachments {
+				StagingProgressBanner
+			}
+
 			ItemsInPackageContainer
 
-			Spacer()
+			if !viewModel.stagedItems.isEmpty {
+				SendPackageActionButton
+			}
+
+			Spacer(minLength: 0)
 		}
 	}
 
@@ -51,17 +121,16 @@ public struct SendView: View {
 		GlassEffectContainer(spacing: 12) {
 			HStack(spacing: 12) {
 				AttachmentButton("Photos", icon: "photo") {
-					viewModel.addPhotoAttachment(name: "IMG_001.jpg", size: 2_450_000)
+					isPhotosPickerPresented = true
 				}
 				AttachmentButton("Camera", icon: "camera") {
-					viewModel.addCameraAttachment(name: "CAM_SNAP.jpg", size: 3_100_000)
+					Task { await requestAndPresentCamera() }
 				}
 				AttachmentButton("Files", icon: "folder") {
-					viewModel.addFileAttachment(
-						name: "Report.pdf", size: 5_200_000, mimeType: "application/pdf")
+					isFileImporterPresented = true
 				}
 				AttachmentButton("Text", icon: "doc.text") {
-					viewModel.addTextAttachment(textSnippet: "Hello from AirShip!")
+					isTextSheetPresented = true
 				}
 			}
 		}
@@ -86,6 +155,40 @@ public struct SendView: View {
 		.buttonStyle(.plain)
 	}
 
+	private var StagingProgressBanner: some View {
+		HStack(spacing: 8) {
+			ProgressView()
+				.tint(AirShipTheme.accentCyan)
+			Text("Adding attachments...")
+				.font(.caption)
+				.foregroundStyle(AirShipTheme.textSecondary)
+		}
+	}
+
+	private var SendPackageActionButton: some View {
+		Button {
+			viewModel.prepareForRecipientSelection()
+			isPeerSelectorPresented = true
+		} label: {
+			Label(sendActionButtonTitle, systemImage: "paperplane.fill")
+				.font(.headline)
+				.foregroundStyle(AirShipTheme.primaryDarkBackground)
+				.frame(maxWidth: .infinity)
+				.padding(.vertical, 14)
+				.glassEffect(.regular.tint(AirShipTheme.accentCyan).interactive(), in: .capsule)
+		}
+		.buttonStyle(.plain)
+		.disabled(!viewModel.canSendPackage)
+		.opacity(viewModel.canSendPackage ? 1.0 : 0.5)
+		.padding(.horizontal)
+		.padding(.bottom, 8)
+	}
+
+	private var sendActionButtonTitle: String {
+		let count = viewModel.stagedItems.count
+		return count == 1 ? "Send 1 Item" : "Send \(count) Items"
+	}
+
 	private var ItemsInPackageContainer: some View {
 		VStack {
 			if viewModel.stagedItems.isEmpty {
@@ -96,7 +199,7 @@ public struct SendView: View {
 					.scrollContentBackground(.hidden)
 			}
 		}
-		.frame(maxWidth: .infinity, maxHeight: 280)
+		.frame(maxWidth: .infinity, maxHeight: 640)
 		.glassEffect(.regular, in: .rect(cornerRadius: AirShipTheme.cardCornerRadius))
 		.padding(.horizontal)
 	}
@@ -119,8 +222,9 @@ public struct SendView: View {
 				.foregroundStyle(AirShipTheme.accentCyan)
 			VStack(alignment: .leading) {
 				Text(item.name)
+					.lineLimit(1)
 					.foregroundStyle(AirShipTheme.textPrimary)
-				Text("\(item.byteSize / 1024) KB")
+				Text(formattedByteSize(item.byteSize))
 					.font(.caption)
 					.foregroundStyle(AirShipTheme.textSecondary)
 			}
@@ -131,7 +235,54 @@ public struct SendView: View {
 				Image(systemName: "xmark.circle.fill")
 					.foregroundStyle(AirShipTheme.textSecondary)
 			}
+			.buttonStyle(.plain)
 		}
 		.listRowBackground(Color.clear)
+	}
+
+	private var attachmentErrorAlertBinding: Binding<Bool> {
+		Binding(
+			get: { viewModel.attachmentErrorMessage != nil },
+			set: { isPresented in
+				if !isPresented {
+					viewModel.dismissAttachmentError()
+				}
+			}
+		)
+	}
+
+	#if canImport(UIKit)
+	private var cameraCaptureSheet: some View {
+		CameraCaptureView(
+			onCapturedJpegBytes: { jpegBytes in
+				viewModel.stageCapturedCameraImage(jpegBytes: jpegBytes)
+				isCameraPresented = false
+			},
+			onCaptureFailed: { captureError in
+				isCameraPresented = false
+				viewModel.reportAttachmentError(captureError)
+			},
+			onCancelled: {
+				isCameraPresented = false
+			}
+		)
+		.ignoresSafeArea()
+	}
+	#endif
+
+	private func handlePhotoSelectionChange(_ updatedSelection: [PhotosPickerItem]) {
+		guard !updatedSelection.isEmpty else { return }
+		let selectionToImport = updatedSelection
+		selectedPhotoPickerItems = []
+		Task {
+			await viewModel.importPhotoPickerItems(selectionToImport)
+		}
+	}
+
+	private func requestAndPresentCamera() async {
+		let isReady = await viewModel.prepareCameraCapture()
+		if isReady {
+			isCameraPresented = true
+		}
 	}
 }

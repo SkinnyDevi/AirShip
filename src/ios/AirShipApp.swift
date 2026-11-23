@@ -44,28 +44,33 @@ public struct AirShipApp: App {
 
 	@ViewBuilder
 	private var transferTabScreen: some View {
-		ZStack {
-			AirShipTheme.primaryDarkBackground.ignoresSafeArea()
+		NavigationStack {
+			ZStack {
+				AirShipTheme.primaryDarkBackground.ignoresSafeArea()
 
-			VStack(spacing: 20) {
-				SegmentedToggleView(selectedOption: $homeViewModel.selectedMode)
-					.padding(.horizontal)
+				VStack(spacing: 20) {
+					SegmentedToggleView(selectedOption: $homeViewModel.selectedMode)
+						.padding(.horizontal)
 
-				if homeViewModel.selectedMode == .send {
-					SendView(
-						viewModel: sendViewModel,
-						selectedMode: $homeViewModel.selectedMode,
-						showsModeSwitcher: false
-					)
-				} else {
-					ReceiveView(
-						viewModel: receiveViewModel,
-						selectedMode: $homeViewModel.selectedMode,
-						showsModeSwitcher: false
-					)
+					if homeViewModel.selectedMode == .send {
+						SendView(
+							viewModel: sendViewModel,
+							selectedMode: $homeViewModel.selectedMode,
+							showsModeSwitcher: false
+						)
+					} else {
+						ReceiveView(
+							viewModel: receiveViewModel,
+							selectedMode: $homeViewModel.selectedMode,
+							showsModeSwitcher: false
+						)
+					}
 				}
+				.padding(.top)
 			}
-			.padding(.top)
+			#if os(iOS)
+			.toolbar(.hidden, for: .navigationBar)
+			#endif
 		}
 	}
 }

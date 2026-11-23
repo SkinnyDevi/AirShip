@@ -2,32 +2,32 @@
 import PackageDescription
 
 let package = Package(
-    name: "AirShipKit",
-    platforms: [
-        .iOS(.v26),
-        .macOS(.v26),
-    ],
-    products: [
-        .library(
-            name: "AirShipKit",
-            targets: ["AirShipKit"]
-        ),
-    ],
-    targets: [
-        .target(
-            name: "AirShipKit",
-            path: ".",
-            exclude: ["Tests", "Info.plist", "README.md", "AirShipApp.swift", "AirShip.xcodeproj"],
-            sources: [
-                "CoreBridge",
-                "DesignSystem",
-                "Features",
-            ]
-        ),
-        .testTarget(
-            name: "AirShipKitTests",
-            dependencies: ["AirShipKit"],
-            path: "Tests"
-        ),
-    ]
+	name: "AirShipKit",
+	platforms: [
+		.iOS(.v26),
+		.macOS(.v26),
+	],
+	products: [
+		.library(
+			name: "AirShipKit",
+			targets: ["AirShipKit"]
+		)
+	],
+	targets: [
+		.target(
+			name: "AirShipKit",
+			path: ".",
+			exclude: ["Tests", "Info.plist", "README.md", "AirShipApp.swift", "AirShip.xcodeproj"],
+			sources: [
+				"CoreBridge",
+				"Components",
+				"Features",
+			]
+		),
+		.testTarget(
+			name: "AirShipKitTests",
+			dependencies: ["AirShipKit"],
+			path: "Tests"
+		),
+	]
 )

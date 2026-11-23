@@ -28,7 +28,7 @@ All agent-generated code must strictly follow this three-folder root architectur
 
 * **src/ios**: Native Xcode project following MVVM + Clean Architecture.
 * **src/ios/CoreBridge**: Generated UniFFI Swift bindings and reactive Combine/AsyncStream wrappers.
-* **src/ios/DesignSystem**: Reusable UI primitives including the blimp logo, segmented toggles, and floating bottom bar.
+* **src/ios/Components**: Reusable UI primitives including the blimp logo, segmented toggles, and floating bottom bar.
 * **src/ios/Features/Home**: Identity display screen showing the local user ID and primary mode switcher.
 * **src/ios/Features/Send**: Package builder supporting Photos, Camera, Files, and Text inputs.
 * **src/ios/Features/Receive**: Listener view handling waiting states and incoming package queues.

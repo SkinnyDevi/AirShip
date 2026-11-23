@@ -1,14 +1,28 @@
+import UniformTypeIdentifiers
 import XCTest
 
 @testable import AirShipKit
 
+// -----------------------------------------------------------------------------
+// 1. Test Doubles
+// -----------------------------------------------------------------------------
+
+private struct StubCameraAccessAuthorizer: CameraAccessAuthorizing {
+	let result: CameraAuthorizationResult
+
+	func requestCameraAccess() async -> CameraAuthorizationResult {
+		return result
+	}
+}
+
+// -----------------------------------------------------------------------------
+// 2. ViewModel & Attachment Tests
+// -----------------------------------------------------------------------------
+
 @MainActor
 final class AirShipViewModelTests: XCTestCase {
-	private var mockBridge: MockCoreBridge!
-
-	override func setUp() {
-		super.setUp()
-		mockBridge = MockCoreBridge(
+	private func makeMockBridge() -> MockCoreBridge {
+		MockCoreBridge(
 			localUserNameId: "TEST_USER_ID",
 			localFingerprint: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 			initialPeers: [
@@ -22,28 +36,272 @@ final class AirShipViewModelTests: XCTestCase {
 		)
 	}
 
+	private func makeTemporaryDirectory(prefix: String) throws -> URL {
+		let directoryURL = FileManager.default.temporaryDirectory
+			.appendingPathComponent("\(prefix)_\(UUID().uuidString)", isDirectory: true)
+		try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+		addTeardownBlock {
+			try? FileManager.default.removeItem(at: directoryURL)
+		}
+		return directoryURL
+	}
+
+	// -------------------------------------------------------------------------
+	// Attachment Helpers
+	// -------------------------------------------------------------------------
+
+	func testAttachmentPureHelpers() {
+		XCTAssertFalse(formattedByteSize(0).isEmpty)
+		XCTAssertEqual(
+			resolvedMimeType(forFileExtension: "pdf", fallbackContentType: nil),
+			"application/pdf"
+		)
+		XCTAssertEqual(
+			resolvedMimeType(forFileExtension: "unknown_ext_xyz", fallbackContentType: .png),
+			"image/png"
+		)
+		XCTAssertEqual(
+			resolvedMimeType(forFileExtension: "unknown_ext_xyz", fallbackContentType: nil),
+			AttachmentMimeTypes.octetStream
+		)
+		XCTAssertEqual(
+			resolvedTextAttachmentTitle(from: "\n   First Line Title   \nSecond line"),
+			"First Line Title"
+		)
+		XCTAssertEqual(
+			resolvedTextAttachmentTitle(from: "   \n  "),
+			AttachmentConstants.defaultTextTitle
+		)
+		let longLine = String(repeating: "A", count: 55)
+		XCTAssertEqual(resolvedTextAttachmentTitle(from: longLine).count, 41)
+
+		let referenceDate = Date(timeIntervalSince1970: 1_700_000_000)
+		XCTAssertEqual(
+			generatedMediaFilename(prefix: "Camera", fileExtension: "jpg", timestamp: referenceDate),
+			"Camera_20231114_221320.jpg"
+		)
+	}
+
+	// -------------------------------------------------------------------------
+	// Local Attachment Staging Service
+	// -------------------------------------------------------------------------
+
+	func testLocalStagingServiceCopiesAndCleansFiles() throws {
+		let sourceDirectory = try makeTemporaryDirectory(prefix: "AirShipSource")
+		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipStaging")
+		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
+
+		let pdfSourceURL = sourceDirectory.appendingPathComponent("Report.pdf")
+		let pdfPayload = Data("PDF-TEST-PAYLOAD".utf8)
+		try pdfPayload.write(to: pdfSourceURL)
+
+		let stagedPdf = try stagingService.stageFileCopy(
+			from: pdfSourceURL,
+			sourceKind: .documentFile,
+			fallbackContentType: nil
+		)
+		XCTAssertEqual(stagedPdf.name, "Report.pdf")
+		XCTAssertEqual(stagedPdf.byteSize, Int64(pdfPayload.count))
+		XCTAssertEqual(stagedPdf.mimeType, "application/pdf")
+		XCTAssertEqual(stagedPdf.sourceKind, .documentFile)
+
+		guard case .fileReference(let stagedURL) = stagedPdf.content else {
+			XCTFail("Expected fileReference content for staged PDF")
+			return
+		}
+		XCTAssertTrue(FileManager.default.fileExists(atPath: stagedURL.path))
+
+		stagingService.removeStagedContent(for: stagedPdf)
+		XCTAssertFalse(FileManager.default.fileExists(atPath: stagedURL.path))
+		XCTAssertTrue(FileManager.default.fileExists(atPath: pdfSourceURL.path))
+	}
+
+	func testLocalStagingServiceStagesCameraMediaAndText() throws {
+		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipStaging")
+		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
+
+		let jpegBytes = Data([0xFF, 0xD8, 0xFF, 0xE0])
+		let stagedCamera = try stagingService.stageEncodedMedia(
+			encodedBytes: jpegBytes,
+			filename: "Camera_20261123_120000.jpg",
+			mimeType: AttachmentMimeTypes.jpeg,
+			sourceKind: .cameraCapture
+		)
+		XCTAssertEqual(stagedCamera.sourceKind, .cameraCapture)
+		XCTAssertEqual(stagedCamera.byteSize, Int64(jpegBytes.count))
+		XCTAssertEqual(stagedCamera.mimeType, AttachmentMimeTypes.jpeg)
+
+		let stagedText = try stagingService.stageTextSnippet("Hello AirShip\nSecond line")
+		XCTAssertEqual(stagedText.name, "Hello AirShip")
+		XCTAssertEqual(stagedText.sourceKind, .textSnippet)
+		XCTAssertEqual(stagedText.content, .textPayload("Hello AirShip\nSecond line"))
+		XCTAssertEqual(stagedText.byteSize, Int64("Hello AirShip\nSecond line".utf8.count))
+
+		XCTAssertThrowsError(try stagingService.stageTextSnippet("   \n\t ")) { thrownError in
+			XCTAssertEqual(thrownError as? AttachmentStagingError, .emptyTextSnippet)
+		}
+	}
+
 	// -------------------------------------------------------------------------
 	// Send ViewModel: Empty -> Staged -> Sending -> Completed
 	// -------------------------------------------------------------------------
 
 	func testSendWorkflowTransitions() async {
-		let viewModel = SendViewModel(coreBridge: mockBridge)
+		let viewModel = SendViewModel(coreBridge: makeMockBridge())
 		XCTAssertEqual(viewModel.transferState, .empty)
 		XCTAssertTrue(viewModel.stagedItems.isEmpty)
 
-		// Stage attachments
 		viewModel.addPhotoAttachment(name: "Photo.png", size: 1024)
 		XCTAssertEqual(viewModel.transferState, .staged)
 		XCTAssertEqual(viewModel.stagedItems.count, 1)
 
-		// Dispatch package
 		await viewModel.dispatchPackage(to: "USER_PEER_1")
 		XCTAssertEqual(viewModel.transferState, .completed)
 
-		// Remove item resets to empty
 		viewModel.removeItem(id: viewModel.stagedItems[0].id)
 		XCTAssertEqual(viewModel.transferState, .empty)
 		XCTAssertTrue(viewModel.stagedItems.isEmpty)
+	}
+
+	// -------------------------------------------------------------------------
+	// Send ViewModel: File Importer, Camera Capture & Text Sources
+	// -------------------------------------------------------------------------
+
+	func testSendViewModelFileImporterSuccessAndFailure() throws {
+		let sourceDirectory = try makeTemporaryDirectory(prefix: "AirShipFiles")
+		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipFileStage")
+		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
+		let viewModel = SendViewModel(
+			coreBridge: makeMockBridge(),
+			stagingService: stagingService,
+			cameraAuthorizer: StubCameraAccessAuthorizer(result: .authorized)
+		)
+
+		let firstFileURL = sourceDirectory.appendingPathComponent("Notes.txt")
+		let secondFileURL = sourceDirectory.appendingPathComponent("Image.png")
+		try Data("Sample text".utf8).write(to: firstFileURL)
+		try Data([0x89, 0x50, 0x4E, 0x47]).write(to: secondFileURL)
+
+		viewModel.handleFileImporterResult(.success([firstFileURL, secondFileURL]))
+		XCTAssertEqual(viewModel.stagedItems.count, 2)
+		XCTAssertEqual(viewModel.transferState, .staged)
+		XCTAssertNil(viewModel.attachmentErrorMessage)
+
+		viewModel.handleFileImporterResult(
+			.failure(NSError(domain: "AirShipTest", code: 42))
+		)
+		XCTAssertNotNil(viewModel.attachmentErrorMessage)
+		XCTAssertEqual(viewModel.stagedItems.count, 2)
+
+		viewModel.dismissAttachmentError()
+		XCTAssertNil(viewModel.attachmentErrorMessage)
+
+		for itemIdentifier in viewModel.stagedItems.map(\.id) {
+			viewModel.removeItem(id: itemIdentifier)
+		}
+		XCTAssertEqual(viewModel.transferState, .empty)
+		XCTAssertTrue(viewModel.stagedItems.isEmpty)
+	}
+
+	func testSendViewModelCameraAuthorizationAndCapture() async throws {
+		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipCamStage")
+		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
+
+		let authorizedViewModel = SendViewModel(
+			coreBridge: makeMockBridge(),
+			stagingService: stagingService,
+			cameraAuthorizer: StubCameraAccessAuthorizer(result: .authorized)
+		)
+		let canOpenCamera = await authorizedViewModel.prepareCameraCapture()
+		XCTAssertTrue(canOpenCamera)
+		XCTAssertNil(authorizedViewModel.attachmentErrorMessage)
+
+		let sampleJpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
+		authorizedViewModel.stageCapturedCameraImage(
+			jpegBytes: sampleJpeg,
+			capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+		)
+		XCTAssertEqual(authorizedViewModel.stagedItems.count, 1)
+		XCTAssertEqual(authorizedViewModel.stagedItems[0].sourceKind, .cameraCapture)
+		XCTAssertEqual(authorizedViewModel.stagedItems[0].name, "Camera_20231114_221320.jpg")
+
+		let deniedViewModel = SendViewModel(
+			coreBridge: makeMockBridge(),
+			stagingService: stagingService,
+			cameraAuthorizer: StubCameraAccessAuthorizer(result: .denied)
+		)
+		let deniedResult = await deniedViewModel.prepareCameraCapture()
+		XCTAssertFalse(deniedResult)
+		XCTAssertEqual(
+			deniedViewModel.attachmentErrorMessage,
+			AttachmentStagingError.cameraPermissionDenied.errorDescription
+		)
+	}
+
+	func testSendViewModelTextAttachmentValidation() throws {
+		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipTextStage")
+		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
+		let viewModel = SendViewModel(
+			coreBridge: makeMockBridge(),
+			stagingService: stagingService
+		)
+
+		viewModel.addTextAttachment(textSnippet: "   ")
+		XCTAssertTrue(viewModel.stagedItems.isEmpty)
+		XCTAssertEqual(
+			viewModel.attachmentErrorMessage,
+			AttachmentStagingError.emptyTextSnippet.errorDescription
+		)
+
+		viewModel.dismissAttachmentError()
+		viewModel.addTextAttachment(textSnippet: "Meeting Link\nhttps://example.com")
+		XCTAssertEqual(viewModel.stagedItems.count, 1)
+		XCTAssertEqual(viewModel.stagedItems[0].sourceKind, .textSnippet)
+		XCTAssertEqual(
+			viewModel.stagedItems[0].content,
+			.textPayload("Meeting Link\nhttps://example.com")
+		)
+	}
+
+	func testSendViewModelNearbyPeersAndResetAfterCompletion() async throws {
+		let stagingDirectory = try makeTemporaryDirectory(prefix: "AirShipDispatchStage")
+		let stagingService = LocalAttachmentStagingService(stagingDirectoryURL: stagingDirectory)
+		let viewModel = SendViewModel(
+			coreBridge: makeMockBridge(),
+			stagingService: stagingService
+		)
+
+		XCTAssertFalse(viewModel.canSendPackage)
+		XCTAssertEqual(viewModel.totalStagedByteSize, 0)
+
+		viewModel.stageCapturedCameraImage(jpegBytes: Data([0xFF, 0xD8, 0xFF, 0xD9]))
+		viewModel.addTextAttachment(textSnippet: "Hello")
+		XCTAssertTrue(viewModel.canSendPackage)
+		XCTAssertEqual(viewModel.totalStagedByteSize, 9)
+
+		guard case .fileReference(let stagedFileURL) = viewModel.stagedItems[0].content else {
+			XCTFail("Expected fileReference for staged camera photo")
+			return
+		}
+		XCTAssertTrue(FileManager.default.fileExists(atPath: stagedFileURL.path))
+
+		await viewModel.loadNearbyPeers()
+		XCTAssertEqual(viewModel.nearbyPeers.count, 1)
+		XCTAssertEqual(viewModel.nearbyPeers[0].id, "USER_PEER_1")
+
+		viewModel.prepareForRecipientSelection()
+		XCTAssertNil(viewModel.selectedRecipientPeerId)
+		XCTAssertEqual(viewModel.transferState, .staged)
+
+		await viewModel.dispatchPackage(to: "USER_PEER_1")
+		XCTAssertEqual(viewModel.selectedRecipientPeerId, "USER_PEER_1")
+		XCTAssertEqual(viewModel.transferState, .completed)
+
+		viewModel.resetTransferAfterCompletion()
+		XCTAssertTrue(viewModel.stagedItems.isEmpty)
+		XCTAssertNil(viewModel.selectedRecipientPeerId)
+		XCTAssertEqual(viewModel.transferState, .empty)
+		XCTAssertFalse(FileManager.default.fileExists(atPath: stagedFileURL.path))
 	}
 
 	// -------------------------------------------------------------------------
@@ -51,7 +309,7 @@ final class AirShipViewModelTests: XCTestCase {
 	// -------------------------------------------------------------------------
 
 	func testReceiveWorkflowTransitions() {
-		let viewModel = ReceiveViewModel(coreBridge: mockBridge)
+		let viewModel = ReceiveViewModel(coreBridge: makeMockBridge())
 		XCTAssertEqual(viewModel.screenState, .waiting)
 
 		let incomingItem = ReceivedPackageItem(
@@ -81,16 +339,14 @@ final class AirShipViewModelTests: XCTestCase {
 	// -------------------------------------------------------------------------
 
 	func testTrustListPeerToggleAndFilter() async {
-		let viewModel = TrustListViewModel(coreBridge: mockBridge)
+		let viewModel = TrustListViewModel(coreBridge: makeMockBridge())
 		await viewModel.loadPeers()
 		XCTAssertEqual(viewModel.peers.count, 1)
 		XCTAssertFalse(viewModel.peers[0].isTrusted)
 
-		// Toggle trust to true
 		await viewModel.toggleTrust(for: viewModel.peers[0])
 		XCTAssertTrue(viewModel.peers[0].isTrusted)
 
-		// Filter search
 		viewModel.searchQuery = "Alice"
 		XCTAssertEqual(viewModel.filteredPeers.count, 1)
 
@@ -116,7 +372,7 @@ final class AirShipViewModelTests: XCTestCase {
 	// -------------------------------------------------------------------------
 
 	func testHomeViewModelModeSwitchDefaultsToReceive() {
-		let viewModel = HomeViewModel(coreBridge: mockBridge)
+		let viewModel = HomeViewModel(coreBridge: makeMockBridge())
 		XCTAssertEqual(viewModel.selectedMode, .receive)
 
 		viewModel.selectedMode = .send
