@@ -4,6 +4,11 @@ pub mod constants;
 pub mod discover_service_info;
 pub mod mock;
 pub mod network_interfaces;
+pub mod tcp_receiver;
+pub mod tcp_transfer;
+pub mod wire_protocol;
+
+mod tcp_connection;
 
 // -----------------------------------------------------------------------------
 // Unit Tests
@@ -11,6 +16,9 @@ pub mod network_interfaces;
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
     use airship_domain::{
         constants::{PayloadKind, TrustLevel},
         manifest::{PackageManifest, PackageManifestItem},
@@ -20,11 +28,14 @@ mod tests {
         bytebuffer::ByteBuffer, cryptohash::CryptoHash, errors::AirShipError, peer::PeerId,
     };
 
+    use crate::tcp_receiver::TcpPackageReceiver;
+    use crate::tcp_transfer::TcpPackageSender;
     use crate::{
-        constants::DEFAULT_STREAM_PORT,
+        constants::{DEFAULT_STREAM_PORT, MAX_WIRE_FRAME_PAYLOAD_BYTES},
         discover_service_info::DiscoveredServiceInfo,
         mock::{MockMdnsAdvertiser, MockPackageSender},
-        network_interfaces::{MdnsAdvertiser, PackageSender},
+        network_interfaces::{MdnsAdvertiser, PackageReceiver, PackageSender},
+        wire_protocol::{WireFrame, WireFrameKind},
     };
 
     #[test]
@@ -88,5 +99,81 @@ mod tests {
         let untrusted_status = sender.send_package(&untrusted_peer, &manifest, &payload)?;
         assert_eq!(untrusted_status, 202);
         Ok(())
+    }
+
+    #[test]
+    fn test_wire_frame_roundtrip_and_validation() -> Result<(), AirShipError> {
+        let frame = WireFrame::new(WireFrameKind::ItemChunk, b"hello-wire-frame".to_vec())?;
+        let mut cursor = Cursor::new(Vec::new());
+        frame.write_to_stream(&mut cursor)?;
+        cursor.set_position(0);
+
+        let decoded = WireFrame::read_from_stream(&mut cursor)?;
+        assert_eq!(decoded, frame);
+
+        let oversized_result = WireFrame::new(
+            WireFrameKind::ItemChunk,
+            vec![0u8; (MAX_WIRE_FRAME_PAYLOAD_BYTES as usize) + 1],
+        );
+        assert!(oversized_result.is_err());
+
+        let unknown_kind = WireFrameKind::try_from(0xFE);
+        assert!(unknown_kind.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn test_loopback_tcp_package_transfer_and_rejection() -> Result<(), AirShipError> {
+        let receiver = TcpPackageReceiver::new(true);
+        let assigned_port =
+            receiver.bind_socket_address(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0))?;
+
+        let peer_id = PeerId::new("USER_LOOPBACK".to_string())?;
+        let fingerprint = CryptoHash::from_hex("a".repeat(64))?;
+        let peer_entity = PeerEntity::new(
+            peer_id.clone(),
+            "Loopback Peer".to_string(),
+            fingerprint,
+            TrustLevel::UntrustedPrompt,
+        );
+        let manifest = PackageManifest::new(
+            "pkg_tcp_1".to_string(),
+            peer_id,
+            vec![PackageManifestItem::new(
+                "item_1".to_string(),
+                "archive.bin".to_string(),
+                150_000,
+                "application/octet-stream".to_string(),
+                PayloadKind::Files,
+                CryptoHash::from_hex("b".repeat(64))?,
+            )],
+        )?;
+        let payload = ByteBuffer::new(vec![0x5A; 150_000]);
+
+        let sender = TcpPackageSender::new(SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            assigned_port,
+        ));
+        let status_code = sender.send_package(&peer_entity, &manifest, &payload)?;
+        assert_eq!(status_code, 202);
+
+        let stored = receiver.received_packages()?;
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].item_payloads[0], payload.as_slice());
+        receiver.stop_listening()?;
+
+        let rejecting_receiver = TcpPackageReceiver::new(false);
+        let reject_port = rejecting_receiver
+            .bind_socket_address(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0))?;
+        let reject_sender = TcpPackageSender::new(SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::LOCALHOST),
+            reject_port,
+        ));
+        let reject_result = reject_sender.send_package(&peer_entity, &manifest, &payload);
+        assert!(matches!(
+            reject_result,
+            Err(AirShipError::TransferRejected { .. })
+        ));
+        rejecting_receiver.stop_listening()
     }
 }
