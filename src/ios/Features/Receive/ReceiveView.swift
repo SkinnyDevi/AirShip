@@ -3,25 +3,41 @@ import SwiftUI
 public struct ReceiveView: View {
 	@ObservedObject public var viewModel: ReceiveViewModel
 	@Binding public var selectedMode: ModeSwitchOption
+	private let showsModeSwitcher: Bool
 
-	public init(viewModel: ReceiveViewModel, selectedMode: Binding<ModeSwitchOption>) {
+	public init(
+		viewModel: ReceiveViewModel,
+		selectedMode: Binding<ModeSwitchOption>,
+		showsModeSwitcher: Bool = true
+	) {
 		self.viewModel = viewModel
 		self._selectedMode = selectedMode
+		self.showsModeSwitcher = showsModeSwitcher
 	}
 
 	public var body: some View {
-		ZStack {
-			AirShipTheme.primaryDarkBackground.ignoresSafeArea()
+		if showsModeSwitcher {
+			ZStack {
+				AirShipTheme.primaryDarkBackground.ignoresSafeArea()
 
-			VStack(spacing: 20) {
-				SegmentedToggleView(selectedOption: $selectedMode)
-					.padding(.horizontal)
+				VStack(spacing: 20) {
+					SegmentedToggleView(selectedOption: $selectedMode)
+						.padding(.horizontal)
 
-				ReceiveStateContainer
-
-				Spacer()
+					receiveContent
+				}
+				.padding(.top)
 			}
-			.padding(.top)
+		} else {
+			receiveContent
+		}
+	}
+
+	private var receiveContent: some View {
+		VStack(spacing: 20) {
+			ReceiveStateContainer
+
+			Spacer()
 		}
 	}
 

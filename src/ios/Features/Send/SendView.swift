@@ -3,31 +3,47 @@ import SwiftUI
 public struct SendView: View {
 	@ObservedObject public var viewModel: SendViewModel
 	@Binding public var selectedMode: ModeSwitchOption
+	private let showsModeSwitcher: Bool
 
-	public init(viewModel: SendViewModel, selectedMode: Binding<ModeSwitchOption>) {
+	public init(
+		viewModel: SendViewModel,
+		selectedMode: Binding<ModeSwitchOption>,
+		showsModeSwitcher: Bool = true
+	) {
 		self.viewModel = viewModel
 		self._selectedMode = selectedMode
+		self.showsModeSwitcher = showsModeSwitcher
 	}
 
 	public var body: some View {
-		ZStack {
-			AirShipTheme.primaryDarkBackground.ignoresSafeArea()
+		if showsModeSwitcher {
+			ZStack {
+				AirShipTheme.primaryDarkBackground.ignoresSafeArea()
 
-			VStack(spacing: 20) {
-				SegmentedToggleView(selectedOption: $selectedMode)
-					.padding(.horizontal)
+				VStack(spacing: 20) {
+					SegmentedToggleView(selectedOption: $selectedMode)
+						.padding(.horizontal)
 
-				Text("Create your package")
-					.font(.title2.bold())
-					.foregroundStyle(AirShipTheme.textPrimary)
-
-				AttachmentButtonsBar
-
-				ItemsInPackageContainer
-
-				Spacer()
+					sendContent
+				}
+				.padding(.top)
 			}
-			.padding(.top)
+		} else {
+			sendContent
+		}
+	}
+
+	private var sendContent: some View {
+		VStack(spacing: 20) {
+			Text("Create your package")
+				.font(.title2.bold())
+				.foregroundStyle(AirShipTheme.textPrimary)
+
+			AttachmentButtonsBar
+
+			ItemsInPackageContainer
+
+			Spacer()
 		}
 	}
 

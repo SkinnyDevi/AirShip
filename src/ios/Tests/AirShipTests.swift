@@ -125,4 +125,16 @@ final class AirShipViewModelTests: XCTestCase {
 		viewModel.selectedMode = .receive
 		XCTAssertEqual(viewModel.selectedMode, .receive)
 	}
+
+	// -------------------------------------------------------------------------
+	// Segmented Toggle: Horizontal Scrub Option Resolution
+	// -------------------------------------------------------------------------
+
+	func testSegmentedToggleOptionResolution() {
+		XCTAssertNil(resolvedModeSwitchOption(atHorizontalOffset: 50, totalBarWidth: 0))
+		XCTAssertEqual(resolvedModeSwitchOption(atHorizontalOffset: -10, totalBarWidth: 300), .send)
+		XCTAssertEqual(resolvedModeSwitchOption(atHorizontalOffset: 75, totalBarWidth: 300), .send)
+		XCTAssertEqual(resolvedModeSwitchOption(atHorizontalOffset: 225, totalBarWidth: 300), .receive)
+		XCTAssertEqual(resolvedModeSwitchOption(atHorizontalOffset: 400, totalBarWidth: 300), .receive)
+	}
 }
