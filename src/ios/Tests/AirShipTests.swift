@@ -110,4 +110,19 @@ final class AirShipViewModelTests: XCTestCase {
 		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: 250, totalBarWidth: 300), .settings)
 		XCTAssertEqual(resolvedNavigationTab(atHorizontalOffset: 400, totalBarWidth: 300), .settings)
 	}
+
+	// -------------------------------------------------------------------------
+	// Home ViewModel: Default Receive Mode & Send/Receive Mode Switching
+	// -------------------------------------------------------------------------
+
+	func testHomeViewModelModeSwitchDefaultsToReceive() {
+		let viewModel = HomeViewModel(coreBridge: mockBridge)
+		XCTAssertEqual(viewModel.selectedMode, .receive)
+
+		viewModel.selectedMode = .send
+		XCTAssertEqual(viewModel.selectedMode, .send)
+
+		viewModel.selectedMode = .receive
+		XCTAssertEqual(viewModel.selectedMode, .receive)
+	}
 }

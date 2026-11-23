@@ -29,7 +29,6 @@ public enum SendTransferState: Equatable {
 public final class SendViewModel: ObservableObject {
 	@Published public private(set) var stagedItems: [StagedItem] = []
 	@Published public private(set) var transferState: SendTransferState = .empty
-	@Published public var selectedMode: ModeSwitchOption = .send
 
 	private let coreBridge: AirShipCoreBridgeProtocol
 

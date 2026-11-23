@@ -45,9 +45,9 @@ public struct AirShipApp: App {
 	@ViewBuilder
 	private var transferTabScreen: some View {
 		if homeViewModel.selectedMode == .send {
-			SendView(viewModel: sendViewModel)
+			SendView(viewModel: sendViewModel, selectedMode: $homeViewModel.selectedMode)
 		} else {
-			ReceiveView(viewModel: receiveViewModel)
+			ReceiveView(viewModel: receiveViewModel, selectedMode: $homeViewModel.selectedMode)
 		}
 	}
 }

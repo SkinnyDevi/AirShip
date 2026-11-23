@@ -2,9 +2,11 @@ import SwiftUI
 
 public struct SendView: View {
 	@ObservedObject public var viewModel: SendViewModel
+	@Binding public var selectedMode: ModeSwitchOption
 
-	public init(viewModel: SendViewModel) {
+	public init(viewModel: SendViewModel, selectedMode: Binding<ModeSwitchOption>) {
 		self.viewModel = viewModel
+		self._selectedMode = selectedMode
 	}
 
 	public var body: some View {
@@ -12,7 +14,7 @@ public struct SendView: View {
 			AirShipTheme.primaryDarkBackground.ignoresSafeArea()
 
 			VStack(spacing: 20) {
-				SegmentedToggleView(selectedOption: $viewModel.selectedMode)
+				SegmentedToggleView(selectedOption: $selectedMode)
 					.padding(.horizontal)
 
 				Text("Create your package")

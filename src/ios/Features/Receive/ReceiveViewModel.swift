@@ -36,7 +36,6 @@ public enum ReceiveScreenState: Equatable {
 @MainActor
 public final class ReceiveViewModel: ObservableObject {
 	@Published public private(set) var screenState: ReceiveScreenState = .waiting
-	@Published public var selectedMode: ModeSwitchOption = .receive
 
 	private let coreBridge: AirShipCoreBridgeProtocol
 
