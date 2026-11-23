@@ -22,6 +22,9 @@ let package = Package(
 				"CoreBridge",
 				"Components",
 				"Features",
+			],
+			resources: [
+				.process("Resources"),
 			]
 		),
 		.testTarget(

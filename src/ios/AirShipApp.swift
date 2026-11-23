@@ -30,15 +30,29 @@ public struct AirShipApp: App {
 
 	private var navigationTabView: some View {
 		TabView(selection: $activeTab) {
-			Tab(NavigationTab.transfer.rawValue, systemImage: NavigationTab.transfer.systemIconName, value: NavigationTab.transfer) {
+			Tab(value: NavigationTab.transfer) {
 				transferTabScreen
+			} label: {
+				tabLabel(for: .transfer)
 			}
-			Tab(NavigationTab.trustList.rawValue, systemImage: NavigationTab.trustList.systemIconName, value: NavigationTab.trustList) {
+			Tab(value: NavigationTab.trustList) {
 				TrustListView(viewModel: trustListViewModel)
+			} label: {
+				tabLabel(for: .trustList)
 			}
-			Tab(NavigationTab.settings.rawValue, systemImage: NavigationTab.settings.systemIconName, value: NavigationTab.settings) {
+			Tab(value: NavigationTab.settings) {
 				SettingsView(viewModel: settingsViewModel)
+			} label: {
+				tabLabel(for: .settings)
 			}
+		}
+	}
+
+	private func tabLabel(for tab: NavigationTab) -> some View {
+		Label {
+			Text(tab.rawValue)
+		} icon: {
+			tab.iconImage
 		}
 	}
 

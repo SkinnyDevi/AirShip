@@ -39,7 +39,7 @@ public struct SendView: View {
 					.padding(.top)
 				}
 				#if os(iOS)
-				.toolbar(.hidden, for: .navigationBar)
+					.toolbar(.hidden, for: .navigationBar)
 				#endif
 			}
 		} else {
@@ -69,9 +69,9 @@ public struct SendView: View {
 				}
 			}
 			#if canImport(UIKit)
-			.fullScreenCover(isPresented: $isCameraPresented) {
-				cameraCaptureSheet
-			}
+				.fullScreenCover(isPresented: $isCameraPresented) {
+					cameraCaptureSheet
+				}
 			#endif
 	}
 
@@ -219,6 +219,7 @@ public struct SendView: View {
 		HStack {
 			Image(systemName: item.systemIconName)
 				.foregroundStyle(AirShipTheme.accentCyan)
+				.font(.system(size: 22))
 			VStack(alignment: .leading) {
 				Text(item.name)
 					.lineLimit(1)
@@ -233,6 +234,7 @@ public struct SendView: View {
 			} label: {
 				Image(systemName: "xmark.circle.fill")
 					.foregroundStyle(AirShipTheme.textSecondary)
+					.font(.system(size: 22))
 			}
 			.buttonStyle(.plain)
 		}
@@ -251,22 +253,22 @@ public struct SendView: View {
 	}
 
 	#if canImport(UIKit)
-	private var cameraCaptureSheet: some View {
-		CameraCaptureView(
-			onCapturedJpegBytes: { jpegBytes in
-				viewModel.stageCapturedCameraImage(jpegBytes: jpegBytes)
-				isCameraPresented = false
-			},
-			onCaptureFailed: { captureError in
-				isCameraPresented = false
-				viewModel.reportAttachmentError(captureError)
-			},
-			onCancelled: {
-				isCameraPresented = false
-			}
-		)
-		.ignoresSafeArea()
-	}
+		private var cameraCaptureSheet: some View {
+			CameraCaptureView(
+				onCapturedJpegBytes: { jpegBytes in
+					viewModel.stageCapturedCameraImage(jpegBytes: jpegBytes)
+					isCameraPresented = false
+				},
+				onCaptureFailed: { captureError in
+					isCameraPresented = false
+					viewModel.reportAttachmentError(captureError)
+				},
+				onCancelled: {
+					isCameraPresented = false
+				}
+			)
+			.ignoresSafeArea()
+		}
 	#endif
 
 	private func handlePhotoSelectionChange(_ updatedSelection: [PhotosPickerItem]) {

@@ -353,8 +353,15 @@ final class AirShipViewModelTests: XCTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// Floating Bottom Bar: Horizontal Scrub Tab Resolution
+	// Floating Bottom Bar: Horizontal Scrub Tab Resolution & Symbol Mapping
 	// -------------------------------------------------------------------------
+
+	func testNavigationTabIconMappings() {
+		XCTAssertEqual(AirShipSymbol.blimpName, "airship")
+		XCTAssertEqual(NavigationTab.transfer.icon, .customSymbol("airship"))
+		XCTAssertEqual(NavigationTab.trustList.icon, .systemSymbol("person.2.fill"))
+		XCTAssertEqual(NavigationTab.settings.icon, .systemSymbol("gearshape.fill"))
+	}
 
 	func testFloatingBottomBarTabResolution() {
 		XCTAssertNil(resolvedNavigationTab(atHorizontalOffset: 50, totalBarWidth: 0))

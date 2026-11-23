@@ -1,5 +1,10 @@
 import SwiftUI
 
+public enum NavigationTabIcon: Equatable, Sendable {
+	case customSymbol(String)
+	case systemSymbol(String)
+}
+
 public enum NavigationTab: String, CaseIterable, Identifiable {
 	case transfer = "Transfer"
 	case trustList = "Users"
@@ -7,14 +12,23 @@ public enum NavigationTab: String, CaseIterable, Identifiable {
 
 	public var id: String { rawValue }
 
-	public var systemIconName: String {
+	public var icon: NavigationTabIcon {
 		switch self {
 		case .transfer:
-			return "airplane.circle"
+			return .customSymbol(AirShipSymbol.blimpName)
 		case .trustList:
-			return "person.2.fill"
+			return .systemSymbol("person.2.fill")
 		case .settings:
-			return "gearshape.fill"
+			return .systemSymbol("gearshape.fill")
+		}
+	}
+
+	public var iconImage: Image {
+		switch icon {
+		case .customSymbol(let symbolName):
+			return Image(symbolName, bundle: .module)
+		case .systemSymbol(let symbolName):
+			return Image(systemName: symbolName)
 		}
 	}
 }
@@ -87,7 +101,7 @@ public struct FloatingBottomBar: View {
 
 	private func tabButtonLabel(for tab: NavigationTab, isSelected: Bool) -> some View {
 		VStack(spacing: FloatingBottomBarMetrics.iconLabelSpacing) {
-			Image(systemName: tab.systemIconName)
+			tab.iconImage
 				.font(.system(size: FloatingBottomBarMetrics.iconFontSize, weight: .semibold))
 			Text(tab.rawValue)
 				.font(.caption2.weight(isSelected ? .semibold : .medium))
