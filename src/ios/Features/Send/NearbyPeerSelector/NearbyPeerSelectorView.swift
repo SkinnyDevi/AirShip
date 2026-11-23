@@ -120,7 +120,7 @@ public struct NearbyPeerSelectorView: View {
 			Text("No nearby users found")
 				.font(.headline)
 				.foregroundStyle(AirShipTheme.textPrimary)
-			Text("Make sure recipients are on the same Wi-Fi network or added to your Trust List.")
+			Text("Make sure recipients are on the same Wi-Fi network.")
 				.font(.subheadline)
 				.foregroundStyle(AirShipTheme.textSecondary)
 				.multilineTextAlignment(.center)

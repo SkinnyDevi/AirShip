@@ -2,6 +2,12 @@ import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum SendViewAnimationMetrics {
+	static let sendButtonTransitionScale: CGFloat = 0.92
+	static let sendButtonAnimationDuration: TimeInterval = 0.35
+	static let sendButtonAnimationBounce: Double = 0.2
+}
+
 public struct SendView: View {
 	@ObservedObject public var viewModel: SendViewModel
 	@Binding public var selectedMode: ModeSwitchOption
@@ -109,12 +115,14 @@ public struct SendView: View {
 
 			ItemsInPackageContainer
 
-			if !viewModel.stagedItems.isEmpty {
+			if hasStagedItems {
 				SendPackageActionButton
+					.transition(sendButtonTransition)
 			}
 
 			Spacer(minLength: 0)
 		}
+		.animation(sendButtonVisibilityAnimation, value: hasStagedItems)
 	}
 
 	private var AttachmentButtonsBar: some View {
@@ -181,6 +189,23 @@ public struct SendView: View {
 		.opacity(viewModel.canSendPackage ? 1.0 : 0.5)
 		.padding(.horizontal)
 		.padding(.bottom, 8)
+	}
+
+	private var hasStagedItems: Bool {
+		!viewModel.stagedItems.isEmpty
+	}
+
+	private var sendButtonTransition: AnyTransition {
+		.move(edge: .bottom)
+			.combined(with: .opacity)
+			.combined(with: .scale(scale: SendViewAnimationMetrics.sendButtonTransitionScale))
+	}
+
+	private var sendButtonVisibilityAnimation: Animation {
+		.spring(
+			duration: SendViewAnimationMetrics.sendButtonAnimationDuration,
+			bounce: SendViewAnimationMetrics.sendButtonAnimationBounce
+		)
 	}
 
 	private var sendActionButtonTitle: String {
