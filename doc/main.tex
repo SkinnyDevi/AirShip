@@ -1,0 +1,92 @@
+\documentclass[12pt,oneside,a4paper]{report}
+
+% ====== Paquetes ======
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\graphicspath{{Ilustraciones/}}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+  pdfauthor={},
+  pdftitle={Memoria de Prácticas}
+}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  tabsize=2
+}
+
+% ====== Metadatos personalizables ======
+\newcommand{\titulo}{\textbf{Título de la aplicación móvil}} % <-- Sustituir
+\newcommand{\autores}{Nombre Apellido1 Apellido2 \ Nombre Apellido1 Apellido2 \ Nombre Apellido1 Apellido2} % <-- Sustituir
+
+% ====== Documento ======
+\begin{document}
+
+% ---- Portada ----
+\input{Portada}
+
+% ---- Índices ----
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\tableofcontents
+\clearpage
+
+\listoffigures
+\clearpage
+
+\listoftables
+\clearpage
+
+% ---- Cuerpo ----
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{Introducción}
+\input{Introduccion}
+
+\chapter{Descripción de la aplicación incluyendo objetivos}
+\input{Descripcion}
+
+\chapter{Diseño}
+\input{Diseno}
+
+\chapter{Arquitectura}
+\input{Arquitectura}
+
+\chapter{Modelo de Datos}
+\input{ModeloDatos}
+
+\chapter{Desarrollo}
+\input{Desarrollo}
+
+\chapter{Interfaces}
+\input{Interfaces}
+
+\chapter{Conclusiones}
+\input{Conclusiones}
+
+% ---- Bibliografía (opcional) ----
+\bibliographystyle{ieeetr}
+\bibliography{ref}
+
+\end{document}
